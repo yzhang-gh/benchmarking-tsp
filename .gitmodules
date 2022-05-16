@@ -1,0 +1,9 @@
+[submodule "solvers/pomo"]
+	path = solvers/pomo
+	url = git@github.com:yzhang-gh/POMO.git
+[submodule "solvers/dact"]
+	path = solvers/dact
+	url = git@github.com:yzhang-gh/VRP-DACT.git
+[submodule "solvers/nlkh"]
+	path = solvers/nlkh
+	url = git@github.com:yzhang-gh/NeuroLKH.git
