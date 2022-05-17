@@ -45,7 +45,7 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", se
             tsp_instances.append(load_tsplib_file(os.path.join(tmp_data_dir, filename)))
         data = np.stack(tsp_instances)
         # rescale, from {1, 2, ..., 1000000} to [0, 1)
-        data = data - 1 / (1000000 - 1)
+        data = (data - 1) / (1000000 - 1)
         return data
 
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     data_dir = opts.data_dir
     seed = opts.seed
-    print(f"{data_dir=}, {distributions}x{opts.graph_sizes}, {seed=}")
+    print(f"{data_dir=}, {distributions}x{opts.graph_sizes} (graph size), {seed=}")
 
     for distribution in distributions:
         for graph_size in opts.graph_sizes:

@@ -13,6 +13,8 @@ import torch
 from tqdm import tqdm
 import re
 
+from utils.file_utils import load_tsplib_file
+
 
 def solve_gurobi(directory, name, loc, disable_cache=False, timeout=None, gap=None):
     # Lazy import so we do not need to have gurobi installed to run this script
@@ -46,9 +48,11 @@ def solve_gurobi(directory, name, loc, disable_cache=False, timeout=None, gap=No
 
 
 def solve_concorde_log(executable, directory, name, loc, disable_cache=False):
+    """loc: node coordinates
+    """
 
     problem_filename = os.path.join(directory, "{}.tsp".format(name))
-    tour_filename = os.path.join(directory, "{}.tour".format(name))
+    solution_filename = os.path.join(directory, "{}.sol".format(name))
     output_filename = os.path.join(directory, "{}.concorde.pkl".format(name))
     log_filename = os.path.join(directory, "{}.log".format(name))
 
@@ -56,26 +60,31 @@ def solve_concorde_log(executable, directory, name, loc, disable_cache=False):
     try:
         # May have already been run
         if os.path.isfile(output_filename) and not disable_cache:
-            tour, duration = load_dataset(output_filename)
+            tour, tour_len, duration = load_dataset(output_filename)
         else:
-            write_tsplib(problem_filename, loc, name=name)
+            if not os.path.exists(problem_filename):
+                os.makedirs(directory, exist_ok=True)
+                write_tsplib(problem_filename, loc, name=name)
+            else:
+                loc = load_tsplib_file(problem_filename, True)
 
             with open(log_filename, 'w') as f:
                 start = time.time()
                 try:
                     # Concorde is weird, will leave traces of solution in current directory so call from target dir
                     check_call([executable, '-s', '1234', '-x', '-o',
-                                os.path.abspath(tour_filename), os.path.abspath(problem_filename)],
-                               stdout=f, stderr=f, cwd=directory)
+                                os.path.abspath(solution_filename), os.path.abspath(problem_filename)],
+                                stdout=f, stderr=f, cwd=directory)
                 except CalledProcessError as e:
                     # Somehow Concorde returns 255
                     assert e.returncode == 255
                 duration = time.time() - start
 
-            tour = read_concorde_tour(tour_filename)
-            save_dataset((tour, duration), output_filename)
+            tour = read_concorde_tour(solution_filename)
+            tour_len = calc_tsp_length(loc, tour)
+            save_dataset((tour, tour_len, duration), output_filename)
 
-        return calc_tsp_length(loc, tour), tour, duration
+        return tour_len, tour, duration
 
     except Exception as e:
         print("Exception occured")
