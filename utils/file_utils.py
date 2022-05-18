@@ -2,7 +2,7 @@ import numpy as np
 import re
 
 ## <integer> <real> <real>
-Regex_Node_Coord_Line = re.compile(r"([\d]+) ([\d\.e\-\+]+) ([\d\.e\-\+]+)")
+Regex_Node_Coord_Line = re.compile(r"(\d+)[\t ]([\d\.e\-\+]+)[\t ]([\d\.e\-\+]+)")
 
 
 def load_tsplib_file(data_file, normalize=False):
@@ -12,8 +12,7 @@ def load_tsplib_file(data_file, normalize=False):
         for line in lines:
             match = Regex_Node_Coord_Line.match(line)
             if not match:
-                print(f"'{line}' not match")
-                raise SystemExit("Error loading {data_file}: line '{line}'")
+                raise SystemExit(f"Error loading {data_file}: line '{line}'")
             nodes_coord.append([float(match.group(2)), float(match.group(3))])
     nodes_coord = np.array(nodes_coord)
 

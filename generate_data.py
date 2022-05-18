@@ -76,8 +76,9 @@ if __name__ == "__main__":
     np.random.seed(opts.seed)
 
     data_dir = opts.data_dir
+    dataset_size = opts.dataset_size
     seed = opts.seed
-    print(f"{data_dir=}, {distributions}x{opts.graph_sizes} (graph size), {seed=}")
+    print(f"{data_dir=}, {distributions}x{opts.graph_sizes} (graph size), {dataset_size=}, {seed=}")
 
     for distribution in distributions:
         for graph_size in opts.graph_sizes:

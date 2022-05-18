@@ -47,8 +47,9 @@ def solve_gurobi(directory, name, loc, disable_cache=False, timeout=None, gap=No
         return None
 
 
-def solve_concorde_log(executable, directory, name, loc, disable_cache=False):
+def solve_concorde_log(executable, directory, name, loc, disable_cache=False, int_distance=False):
     """loc: node coordinates
+    int_distance: return integer distance as in TSPLib
     """
 
     problem_filename = os.path.join(directory, "{}.tsp".format(name))
@@ -63,7 +64,6 @@ def solve_concorde_log(executable, directory, name, loc, disable_cache=False):
             tour, tour_len, duration = load_dataset(output_filename)
         else:
             if not os.path.exists(problem_filename):
-                os.makedirs(directory, exist_ok=True)
                 write_tsplib(problem_filename, loc, name=name)
             else:
                 loc = load_tsplib_file(problem_filename, True)
@@ -83,6 +83,12 @@ def solve_concorde_log(executable, directory, name, loc, disable_cache=False):
             tour = read_concorde_tour(solution_filename)
             tour_len = calc_tsp_length(loc, tour)
             save_dataset((tour, tour_len, duration), output_filename)
+
+        if int_distance:
+            int_tour_len = calc_tsp_int_length(loc, tour)
+            return int_tour_len, tour, duration
+
+        print(f"{name=},\t{tour_len=:.3f},\t{duration=:7.2f}s" + f",\t{int_tour_len=:8}" if int_distance else "")
 
         return tour_len, tour, duration
 
@@ -142,6 +148,9 @@ def write_lkh_par(filename, parameters):
 
 
 def write_tsplib(filename, loc, name="problem"):
+
+    file_dir = os.path.split(filename)[0]
+    os.makedirs(file_dir, exist_ok=True)
 
     with open(filename, 'w') as f:
         f.write("\n".join([
@@ -203,6 +212,14 @@ def calc_tsp_length(loc, tour):
     assert len(tour) == len(loc)
     sorted_locs = np.array(loc)[np.concatenate((tour, [tour[0]]))]
     return np.linalg.norm(sorted_locs[1:] - sorted_locs[:-1], axis=-1).sum()
+
+
+def calc_tsp_int_length(loc, tour):
+    assert len(np.unique(tour)) == len(tour), "Tour cannot contain duplicates"
+    assert len(tour) == len(loc)
+    loc = np.ceil(loc * 1000000)
+    sorted_locs = np.array(loc)[np.concatenate((tour, [tour[0]]))]
+    return int(np.round(np.linalg.norm(sorted_locs[1:] - sorted_locs[:-1], axis=-1)).sum())
 
 
 def _calc_insert_cost(D, prv, nxt, ins):
