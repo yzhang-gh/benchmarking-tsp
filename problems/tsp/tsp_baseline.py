@@ -47,15 +47,18 @@ def solve_gurobi(directory, name, loc, disable_cache=False, timeout=None, gap=No
         return None
 
 
-def solve_concorde_log(executable, directory, name, loc, disable_cache=False, int_distance=False):
+def solve_concorde_log(executable, dot_tsp_file_dir, tsp_file_name, loc, disable_cache=False, int_distance=False):
     """loc: node coordinates
-    int_distance: return integer distance as in TSPLib
+    tsp_file_name: the .tsp file basename (without .tsp)
+    int_distance: return integer distance as in TSPLib. This do not affect the saved individual .concorde.pkl files
     """
 
-    problem_filename = os.path.join(directory, "{}.tsp".format(name))
-    solution_filename = os.path.join(directory, "{}.sol".format(name))
-    output_filename = os.path.join(directory, "{}.concorde.pkl".format(name))
-    log_filename = os.path.join(directory, "{}.log".format(name))
+    assert len(tsp_file_name) <= 8, "Concorde will produce tmp files using only the first 8 chars of filename"
+
+    problem_filename = os.path.join(dot_tsp_file_dir, "{}.tsp".format(tsp_file_name))
+    solution_filename = os.path.join(dot_tsp_file_dir, "{}.sol".format(tsp_file_name))
+    output_filename = os.path.join(dot_tsp_file_dir, "{}.concorde.pkl".format(tsp_file_name))
+    log_filename = os.path.join(dot_tsp_file_dir, "{}.log".format(tsp_file_name))
 
     # if True:
     try:
@@ -64,7 +67,7 @@ def solve_concorde_log(executable, directory, name, loc, disable_cache=False, in
             tour, tour_len, duration = load_dataset(output_filename)
         else:
             if not os.path.exists(problem_filename):
-                write_tsplib(problem_filename, loc, name=name)
+                write_tsplib(problem_filename, loc, name=tsp_file_name)
             else:
                 loc = load_tsplib_file(problem_filename, True)
 
@@ -74,7 +77,7 @@ def solve_concorde_log(executable, directory, name, loc, disable_cache=False, in
                     # Concorde is weird, will leave traces of solution in current directory so call from target dir
                     check_call([executable, '-s', '1234', '-x', '-o',
                                 os.path.abspath(solution_filename), os.path.abspath(problem_filename)],
-                                stdout=f, stderr=f, cwd=directory)
+                                stdout=f, stderr=f, cwd=dot_tsp_file_dir)
                 except CalledProcessError as e:
                     # Somehow Concorde returns 255
                     assert e.returncode == 255
@@ -86,11 +89,13 @@ def solve_concorde_log(executable, directory, name, loc, disable_cache=False, in
 
         if int_distance:
             int_tour_len = calc_tsp_int_length(loc, tour)
-            return int_tour_len, tour, duration
 
-        print(f"{name=},\t{tour_len=:.3f},\t{duration=:7.2f}s" + f",\t{int_tour_len=:8}" if int_distance else "")
+        print(
+            f"{dot_tsp_file_dir},  {tsp_file_name=},  {tour_len=:.3f},  {duration=:7.2f}s,"
+            + (f"  {int_tour_len=:8}" if int_distance else "")
+        )
 
-        return tour_len, tour, duration
+        return int_tour_len if int_distance else tour_len, tour, duration
 
     except Exception as e:
         print("Exception occured")

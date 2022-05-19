@@ -11,6 +11,8 @@ data_dir <- args[6]
 
 set.seed(seed)
 
+num_digits <- nchar(toString(ins.num - 1))
+
 index = 0
 for (clu_num in clu.lower:clu.upper)
 {
@@ -26,7 +28,7 @@ for (clu_num in clu.lower:clu.upper)
         x$coordinates = ceiling(x$coordinates)
         x$lower = 1
         x$upper = 1000000
-        filepath = sprintf("%s/clust%d_seed%d_%d.tsp", data_dir, points.num, seed, index)
+        filepath = sprintf(paste("%s/%0", toString(num_digits), "d.tsp", sep=""), data_dir, index)
         exportToTSPlibFormat(x, filepath, use.extended.format=FALSE)
         index = index + 1
     }

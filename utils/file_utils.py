@@ -1,5 +1,6 @@
 import numpy as np
 import re
+import os
 
 ## <integer> <real> <real>
 Regex_Node_Coord_Line = re.compile(r"(\d+)[\t ]([\d\.e\-\+]+)[\t ]([\d\.e\-\+]+)")
@@ -20,3 +21,19 @@ def load_tsplib_file(data_file, normalize=False):
         nodes_coord = (nodes_coord - 1) / (1000000 - 1)
 
     return nodes_coord
+
+
+def get_tmpfile_dir(data_dir):
+    """Create tmp file dir
+    Append "_tmpfiles" to the first-level folder
+    """
+
+    if os.path.isabs(data_dir):
+        data_dir = os.path.relpath(data_dir, os.pwd())
+
+    if not data_dir.endswith("/"):
+        data_dir += "/"
+
+    tmp_dir = re.sub("/", "_tmpfiles/", data_dir, count=1)
+
+    return os.path.join(tmp_dir)

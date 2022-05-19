@@ -1,52 +1,55 @@
 import argparse
+import math
 import os
-import re
 import subprocess
 
 import numpy as np
 
 from utils.data_utils import save_dataset
-from utils.file_utils import load_tsplib_file
+from utils.file_utils import get_tmpfile_dir, load_tsplib_file
 
 
 def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", seed=1234):
-    print(f"Generating {distribution}{graph_size} ({dataset_size} instances)")
+    print(f"Generating {distribution}{graph_size} ({dataset_size} instances) {seed=}")
+
+    dataset_id = f"{distribution}{graph_size}_seed{seed}"
 
     if distribution == "rue":
-        return np.random.uniform(size=(dataset_size, graph_size, 2))
+        dataset = np.random.uniform(size=(dataset_size, graph_size, 2))
 
     elif distribution == "clust":
         if graph_size in [50, 500]:
             min_num_clusts = max_num_clusts = 5
         elif graph_size in [100, 1000]:
             min_num_clusts = max_num_clusts = 10
+        else:
+            min_num_clusts = max_num_clusts = max(5, math.floor(graph_size / 100))
 
-        # assert (
-        #     dataset_size % (max_num_clusts - min_num_clusts + 1) == 0
-        # ), f"{min_num_clusts=}, {max_num_clusts=}, {dataset_size=}"
+        # create tmp file dir with subfolders to better organize tmp files
+        tmp_data_dir = get_tmpfile_dir(data_dir)
+        os.makedirs(os.path.join(tmp_data_dir, dataset_id), exist_ok=True)
 
-        # create nested folders to better organize tmp files
-        tmp_data_dir = os.path.join(data_dir, f"{distribution}{graph_size}")
-        tmp_data_dir = re.sub(r"(?!^)/", "_tmpfiles/", tmp_data_dir, count=1)
-        os.makedirs(tmp_data_dir, exist_ok=True)
-
-        data_size_per_clust = dataset_size // (max_num_clusts - min_num_clusts + 1)
+        data_size_per_clust = dataset_size  # // (max_num_clusts - min_num_clusts + 1)
         # Rscript call_netgen.R point_num clu.lower clu.upper num_per_clust seed data_dir
         cmd = (
             f"Rscript call_netgen.R {graph_size} {min_num_clusts} {max_num_clusts}"
-            f" {data_size_per_clust} {seed} '{tmp_data_dir}'"
+            f" {data_size_per_clust} {seed} '{os.path.join(tmp_data_dir, dataset_id)}'"
         )
         print(cmd)
         subprocess.run(cmd, shell=True)
 
+        num_digits = len(str(dataset_size - 1))
         tsp_instances = []
         for i in range(dataset_size):
-            filename = f"{distribution}{graph_size}_seed{seed}_{i}.tsp"
-            tsp_instances.append(load_tsplib_file(os.path.join(tmp_data_dir, filename)))
-        data = np.stack(tsp_instances)
+            tsp_instances.append(load_tsplib_file(os.path.join(tmp_data_dir, dataset_id, f"{i:0{num_digits}d}.tsp")))
+        dataset = np.stack(tsp_instances)
         # rescale, from {1, 2, ..., 1000000} to [0, 1)
-        data = (data - 1) / (1000000 - 1)
-        return data
+        dataset = (dataset - 1) / (1000000 - 1)
+
+    save_dataset(dataset, os.path.join(data_dir, dataset_id))
+    print("Saved to {os.path.join(data_dir, dataset_id)}.pkl")
+
+    return dataset
 
 
 if __name__ == "__main__":
@@ -82,8 +85,4 @@ if __name__ == "__main__":
 
     for distribution in distributions:
         for graph_size in opts.graph_sizes:
-
-            dataset = generate_tsp_data(data_dir, opts.dataset_size, graph_size, distribution, seed)
-
-            filename = f"{distribution}{graph_size}_seed{opts.seed}.pkl"
-            save_dataset(dataset, os.path.join(data_dir, filename))
+            generate_tsp_data(data_dir, opts.dataset_size, graph_size, distribution, seed)
