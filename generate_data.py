@@ -6,7 +6,7 @@ import subprocess
 import numpy as np
 
 from utils.data_utils import save_dataset
-from utils.file_utils import get_tmpfile_dir, load_tsplib_file
+from utils.file_utils import load_tsplib_file
 
 
 def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", seed=1234):
@@ -25,15 +25,14 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", se
         else:
             min_num_clusts = max_num_clusts = max(5, math.floor(graph_size / 100))
 
-        # create tmp file dir with subfolders to better organize tmp files
-        tmp_data_dir = get_tmpfile_dir(data_dir)
-        os.makedirs(os.path.join(tmp_data_dir, dataset_id), exist_ok=True)
+        # create subfolders named `dataset_id` to store `.tsp` and other tmp files
+        os.makedirs(os.path.join(data_dir, dataset_id), exist_ok=True)
 
         data_size_per_clust = dataset_size  # // (max_num_clusts - min_num_clusts + 1)
         # Rscript call_netgen.R point_num clu.lower clu.upper num_per_clust seed data_dir
         cmd = (
             f"Rscript call_netgen.R {graph_size} {min_num_clusts} {max_num_clusts}"
-            f" {data_size_per_clust} {seed} '{os.path.join(tmp_data_dir, dataset_id)}'"
+            f" {data_size_per_clust} {seed} '{os.path.join(data_dir, dataset_id)}'"
         )
         print(cmd)
         subprocess.run(cmd, shell=True)
@@ -41,13 +40,13 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", se
         num_digits = len(str(dataset_size - 1))
         tsp_instances = []
         for i in range(dataset_size):
-            tsp_instances.append(load_tsplib_file(os.path.join(tmp_data_dir, dataset_id, f"{i:0{num_digits}d}.tsp")))
+            tsp_instances.append(load_tsplib_file(os.path.join(data_dir, dataset_id, f"{i:0{num_digits}d}.tsp")))
         dataset = np.stack(tsp_instances)
         # rescale, from {1, 2, ..., 1000000} to [0, 1)
         dataset = (dataset - 1) / (1000000 - 1)
 
     save_dataset(dataset, os.path.join(data_dir, dataset_id))
-    print("Saved to {os.path.join(data_dir, dataset_id)}.pkl")
+    print(f"Saved to {os.path.join(data_dir, dataset_id)}.pkl")
 
     return dataset
 
