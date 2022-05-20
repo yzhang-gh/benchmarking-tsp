@@ -40,7 +40,7 @@ def solve_dataset(data_dir, dataset_id, save_int_distance=False):
                 ),
                 desc=f"Solving {dataset_id}.pkl...",
                 total=len(dataset),
-                bar_format="{l_bar}{bar:30}{r_bar}{bar:-30b}",
+                bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
             )
         )
 

@@ -42,7 +42,7 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", se
             f" {data_size_per_clust} {seed} '{os.path.join(data_dir, dataset_id)}'"
         )
         print("  " + cmd)
-        subprocess.run(cmd, shell=True)
+        subprocess.run(cmd, shell=True, check=True)
 
         num_digits = len(str(dataset_size - 1))
         tsp_instances = []
