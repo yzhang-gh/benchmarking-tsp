@@ -1,16 +1,20 @@
 import argparse
-import math
 import os
 import subprocess
 
 import numpy as np
 
-from utils.data_utils import save_dataset
+from utils.data_utils import generate_seed, save_dataset
 from utils.file_utils import load_tsplib_file
 
 
-def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", seed=1234):
-    print(f"Generating {distribution}{graph_size} ({dataset_size} instances) {seed=}")
+def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", seed=None, num_clusts=None):
+    if not seed:
+        seed = generate_seed(graph_size, distribution)
+
+    np.random.seed(seed)
+
+    print(f"Generating {distribution}{graph_size} ({dataset_size} instances), {seed=}")
 
     dataset_id = f"{distribution}{graph_size}_seed{seed}"
 
@@ -18,12 +22,15 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", se
         dataset = np.random.uniform(size=(dataset_size, graph_size, 2))
 
     elif distribution == "clust":
-        if graph_size in [50, 500]:
-            min_num_clusts = max_num_clusts = 5
-        elif graph_size in [100, 1000]:
-            min_num_clusts = max_num_clusts = 10
-        else:
-            min_num_clusts = max_num_clusts = max(5, math.floor(graph_size / 100))
+        if not num_clusts:
+            if graph_size in [50, 500]:
+                min_num_clusts = max_num_clusts = 5
+            elif graph_size in [100, 1000]:
+                min_num_clusts = max_num_clusts = 10
+            else:
+                raise NotImplementedError()
+        else:  # rue
+            min_num_clusts = max_num_clusts = num_clusts
 
         # create subfolders named `dataset_id` to store `.tsp` and other tmp files
         os.makedirs(os.path.join(data_dir, dataset_id), exist_ok=True)
@@ -34,7 +41,7 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", se
             f"Rscript call_netgen.R {graph_size} {min_num_clusts} {max_num_clusts}"
             f" {data_size_per_clust} {seed} '{os.path.join(data_dir, dataset_id)}'"
         )
-        print(cmd)
+        print("  " + cmd)
         subprocess.run(cmd, shell=True)
 
         num_digits = len(str(dataset_size - 1))
@@ -65,7 +72,7 @@ if __name__ == "__main__":
         default=[50, 100],
         help="Sizes of problem instances (default 50, 100)",
     )
-    parser.add_argument("-s", "--seed", type=int, default=1234, help="Random seed (default 1234)")
+    parser.add_argument("-s", "--seed", type=int, default=None, help="Random seed (default None)")
 
     opts = parser.parse_args()
 
@@ -74,8 +81,6 @@ if __name__ == "__main__":
     else:
         assert opts.data_distribution in ["rue", "clust", "clustered"], "Unknown data distribution"
         distributions = ["clust" if opts.data_distribution == "clustered" else opts.data_distribution]
-
-    np.random.seed(opts.seed)
 
     data_dir = opts.data_dir
     dataset_size = opts.dataset_size

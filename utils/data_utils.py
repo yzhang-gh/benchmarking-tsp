@@ -23,3 +23,14 @@ def load_dataset(filename):
 
     with open(check_extension(filename), 'rb') as f:
         return pickle.load(f)
+
+
+Possible_Distributions = ["rue", "clust"]
+
+
+def generate_seed(graph_size, distribution, mode="train"):
+    seed = graph_size * 10 + Possible_Distributions.index(distribution)
+    if mode == "test":
+        seed += 8
+
+    return seed

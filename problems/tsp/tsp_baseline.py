@@ -85,15 +85,17 @@ def solve_concorde_log(executable, dot_tsp_file_dir, tsp_file_name, loc, disable
 
             tour = read_concorde_tour(solution_filename)
             tour_len = calc_tsp_length(loc, tour)
+
+            if not disable_cache:
             save_dataset((tour, tour_len, duration), output_filename)
 
         if int_distance:
             int_tour_len = calc_tsp_int_length(loc, tour)
 
-        print(
-            f"{dot_tsp_file_dir},  {tsp_file_name=},  {tour_len=:.3f},  {duration=:7.2f}s,"
-            + (f"  {int_tour_len=:8}" if int_distance else "")
-        )
+        # print(
+        #     f"{dot_tsp_file_dir},  {tsp_file_name=},  {tour_len=:.3f},  {duration=:7.2f}s,"
+        #     + (f"  {int_tour_len=:8}" if int_distance else "")
+        # )
 
         return int_tour_len if int_distance else tour_len, tour, duration
 

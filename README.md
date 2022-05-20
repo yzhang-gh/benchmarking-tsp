@@ -28,6 +28,42 @@ R
 > devtools::install_github("jakobbossek/netgen")
 ```
 
+## File Structure and Naming Conventions
+
+```
+dataset_id := <distribution><graph_size>_seed<seed>
+# e.g., rue50_seed1234
+
+data/
+├── <dataset_id>.pkl      # shape: (dataset_size, graph_size, 2)
+├── <dataset_id>.sol.pkl
+├── ...
+│
+└── <dataset_id>/         # tmp files
+    ├── xxxx.tsp
+    ├── xxxx.sol
+    ├── xxxx.log
+    └── ...
+```
+
+## Random Seed
+
+train
+
+```
+NeuroLKH
+<graph_size> * 10 + 0/1 (rue/clustered)
+
+LKH
+1234
+```
+
+test
+
+```
+<graph_size> * 10 + 8/9 (rue/clustered)
+```
+
 ## Pretrained Models
 
 - POMO
@@ -37,6 +73,14 @@ R
 - NeuroLKH
   https://github.com/liangxinedu/NeuroLKH/tree/main/pretrained
 
+## Abbreviation
+
+clust --- cluster
+feat --- feature
+
 ## Acknowledgements
 
 https://github.com/wouterkool/attention-learn-to-route
+
+netgen
+

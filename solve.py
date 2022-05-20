@@ -22,7 +22,7 @@ def solve_dataset(data_dir, dataset_id, save_int_distance=False):
 
     dataset = load_dataset(f"{data_dir}/{dataset_id}")
 
-    print(f"Solving {dataset_id}.pkl... {save_int_distance=}")
+    print(f"{save_int_distance=}")
 
     num_digits = len(str(len(dataset) - 1))
 
@@ -38,6 +38,7 @@ def solve_dataset(data_dir, dataset_id, save_int_distance=False):
                         for i, data in enumerate(dataset)
                     ],
                 ),
+                desc=f"Solving {dataset_id}.pkl...",
                 total=len(dataset),
                 bar_format="{l_bar}{bar:30}{r_bar}{bar:-30b}",
             )
@@ -62,4 +63,4 @@ if __name__ == "__main__":
         data_dir = "data"
         dataset_id = f"{distribution}{graph_size}_seed{seed}"
 
-        solve_dataset(data_dir, dataset_id, False)
+        solve_dataset(data_dir, dataset_id)

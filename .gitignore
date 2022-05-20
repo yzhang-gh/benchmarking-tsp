@@ -1,4 +1,3 @@
 **/__pycache__
-data/*
-data_tmpfiles/*
+data*/*
 pretrained/*
