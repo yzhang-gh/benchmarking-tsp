@@ -27,16 +27,16 @@ def generate_data_and_extract_feat(data_dir, graph_size, mode="train", distribut
 
     for distribution in distributions:
         if not seed:
-            seed = generate_seed(graph_size, distribution)
+            seed = generate_seed(graph_size, distribution, mode)
 
         if distribution == "clust":
             num_clusts = 7
         else:
             num_clusts = None
 
-        t_start = time()
+        # t_start = time()
 
-        dataset = generate_tsp_data(data_dir, n_samples, graph_size, distribution, seed, num_clusts=num_clusts)
+        dataset = generate_tsp_data(data_dir, n_samples, graph_size, distribution, mode, seed, num_clusts=num_clusts)
         dataset_id = f"{distribution}{graph_size}_seed{seed}"
         results = solve_dataset(data_dir, dataset_id)
         optim_tours = [tour for _tour_len, tour, _time in results]
@@ -68,35 +68,35 @@ def generate_data_and_extract_feat(data_dir, graph_size, mode="train", distribut
             "inverse_edge_index": inverse_edge_index,
         }
 
-        t_end = time()
+        # t_end = time()
 
         save_dataset(feat, os.path.join(data_dir, dataset_id + ".feat.pkl"))
 
-        if mode == "train":
-            with open(f"walltime.txt", "a") as w:
-                w.write(f"n={graph_size} {(t_end - t_start) / 60:.2f}m ({n_samples} instances)\n")
+        # if mode == "train":
+        #     with open(f"walltime.txt", "a") as w:
+        #         w.write(f"n={graph_size} {(t_end - t_start) / 60:.2f}m ({n_samples} instances)\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--type", default="train", help="Generate training or validation datasets")
     cli_opts = parser.parse_args()
 
-    data_type = cli_opts.type
+    dataset_type = cli_opts.type
+    assert dataset_type in ["train", "val"]
 
+    data_dir = "/data0/zhangyu/data_nlkh"
     distributions = ["clust"]
-    graph_sizes = range(101, 501)
+    train_graph_sizes = range(101, 501)
+    val_graph_sizes = (100, 200, 500)
     seed = None
 
-    print(f"Generating NeuroLKH data, {data_type=}, {distributions=}, {graph_sizes=}, {seed=}")
+    graph_sizes = train_graph_sizes if dataset_type == "train" else val_graph_sizes
+    arg_list = [
+        (data_dir, graph_size, dataset_type, distributions, seed) for graph_size in graph_sizes
+    ]
 
-    if data_type == "train":
-        arg_list = [
-            ("/data0/zhangyu/data_nlkh", graph_size, "train", distributions, seed) for graph_size in graph_sizes
-        ]
-        for args in arg_list:
-            generate_data_and_extract_feat(*args)
+    print(f"Generating NeuroLKH data, {dataset_type=}, {distributions=}, {graph_sizes=}, {seed=}")
 
-    elif data_type == "val":
-        arg_list = [("/data0/zhangyu/data_nlkh", graph_size, "val", distributions, seed) for graph_size in [100, 200, 500]]
-        pass
+    for args in arg_list:
+        generate_data_and_extract_feat(*args)

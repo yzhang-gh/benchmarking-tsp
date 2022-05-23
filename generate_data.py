@@ -8,9 +8,12 @@ from utils.data_utils import generate_seed, save_dataset
 from utils.file_utils import load_tsplib_file
 
 
-def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", seed=None, num_clusts=None):
+def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mode="train", seed=None, num_clusts=None):
+    """
+    mode: This is used to generate the default random seed if seed is not provided.
+    """
     if not seed:
-        seed = generate_seed(graph_size, distribution)
+        seed = generate_seed(graph_size, distribution, mode)
 
     np.random.seed(seed)
 
@@ -72,6 +75,13 @@ if __name__ == "__main__":
         default=[50, 100],
         help="Sizes of problem instances (default 50, 100)",
     )
+    parser.add_argument(
+        "-t",
+        "--type",
+        type=str,
+        default="train",
+        help="Dataset type (default 'train'). This is used to generate the default random seed if seed is not provided.",
+    )
     parser.add_argument("-s", "--seed", type=int, default=None, help="Random seed (default None)")
 
     opts = parser.parse_args()
@@ -87,6 +97,8 @@ if __name__ == "__main__":
     seed = opts.seed
     print(f"{data_dir=}, {distributions}x{opts.graph_sizes} (graph size), {dataset_size=}, {seed=}")
 
+    mode = opts.type
+
     for distribution in distributions:
         for graph_size in opts.graph_sizes:
-            generate_tsp_data(data_dir, opts.dataset_size, graph_size, distribution, seed)
+            generate_tsp_data(data_dir, opts.dataset_size, graph_size, distribution, mode, seed)

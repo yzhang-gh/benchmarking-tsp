@@ -30,7 +30,9 @@ Possible_Distributions = ["rue", "clust"]
 
 def generate_seed(graph_size, distribution, mode="train"):
     seed = graph_size * 10 + Possible_Distributions.index(distribution)
-    if mode == "test":
+    if mode == "val":
+        seed += 4
+    elif mode == "test":
         seed += 8
 
     return seed
