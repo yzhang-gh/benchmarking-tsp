@@ -23,12 +23,13 @@ pip install -e .
 conda install r r-essentials
 R
 # in the R session
-> install.packages("devtools")
+> install.packages("devtools", repos='...') # select a mirror from https://cran.r-project.org/mirrors.html
 > Sys.setenv(TAR = "/bin/tar")
 > devtools::install_github("jakobbossek/netgen")
+> q()  # quit
 ```
 
-## File Structure and Naming Conventions
+## Data Organization and Naming
 
 ```
 dataset_id := <distribution><graph_size>_seed<seed>
@@ -46,7 +47,7 @@ data/
     └── ...
 ```
 
-## Random Seed
+### Default Random Seed
 
 train
 
@@ -54,7 +55,7 @@ train
 NeuroLKH
 <graph_size> * 10 + 0/1 (rue/clustered)
 
-LKH
+LKH, GA-EAX
 1234
 ```
 
@@ -84,3 +85,6 @@ https://github.com/wouterkool/attention-learn-to-route
 
 netgen
 
+---
+
+bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}'
