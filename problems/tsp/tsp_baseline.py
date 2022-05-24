@@ -172,7 +172,7 @@ def write_tsplib(filename, loc, name="problem"):
         f.write("\n")
         f.write("NODE_COORD_SECTION\n")
         f.write("\n".join([
-            "{}\t{}\t{}".format(i + 1, ceil(x * 1000000), ceil(y * 1000000))  # tsplib does not take floats
+            "{}\t{}\t{}".format(i + 1, 1 + ceil(x * 999999), 1 + ceil(y * 999999))  # tsplib does not take floats
             for i, (x, y) in enumerate(loc)
         ]))
         f.write("\n")
@@ -224,7 +224,7 @@ def calc_tsp_length(loc, tour):
 def calc_tsp_int_length(loc, tour):
     assert len(np.unique(tour)) == len(tour), "Tour cannot contain duplicates"
     assert len(tour) == len(loc)
-    loc = np.ceil(loc * 1000000)
+    loc = 1 + np.ceil(loc * 999999)
     sorted_locs = np.array(loc)[np.concatenate((tour, [tour[0]]))]
     return int(np.round(np.linalg.norm(sorted_locs[1:] - sorted_locs[:-1], axis=-1)).sum())
 
