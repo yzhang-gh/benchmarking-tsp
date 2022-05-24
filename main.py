@@ -4,13 +4,13 @@ import pickle
 import time
 import torch
 from torch.utils.data import DataLoader, Dataset
-from solvers.solver_options import get_dact_solver_options, get_pomo_solver_options
+from solvers.solver_options import get_dact_solver_options, get_nlkh_solver_options, get_pomo_solver_options
 
-from solvers.solvers import DactSolver, PomoSolver
+from solvers.solvers import DactSolver, NlkhSolver, PomoSolver
 from utils.data_utils import generate_seed, load_dataset
 
 Testset_Size = 1
-Graph_Size = 100
+Graph_Size = 500
 
 
 # class TSPDataset(Dataset):
@@ -78,31 +78,41 @@ if __name__ == "__main__":
     rue_problems = rue_problems[:Testset_Size]
     rue_problems = torch.tensor(rue_problems, dtype=torch.float)  # numpy ndarray's default dtype is double
 
-    print(f"Loaded '{testfile_name}'")
+    print(f"Loaded '{testfile_name}'. {Testset_Size=}")
 
     pomo_solver = PomoSolver(
         *get_pomo_solver_options(Graph_Size, "pretrained/pomo/saved_tsp100_model2_longTrain", 3100, seed, 1)
     )
     dact_solver = DactSolver(get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", seed, 1, 1500))
+    nlkh_solver = NlkhSolver(get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt"))
 
-    for solver_name, solver in [("POMO", pomo_solver), ("DACT", dact_solver)]:
+    for solver_name, solver in [("POMO", pomo_solver), ("DACT", dact_solver), ("NeuroLKH", nlkh_solver)]:
 
-        for seed in [1, 2, 3, 4, 5]:
+        if not solver_name == "NeuroLKH":
+            continue
+
+        print(f"== {solver_name} ==")
+
+        for seed in [1, 2, 3, 4, 5]:#
 
             np.random.seed(seed)
             torch.manual_seed(seed)
 
             t_start = time.time()
 
-            tours, scores = solver.solve(rue_problems)
+            tours, scores = solver.solve(rue_problems, seed)
             
             t_end = time.time()
             duration = t_end - t_start
 
             tours = tours.to("cpu")
-            scores = scores.to("cpu")
             costs = get_costs(rue_problems, tours)
-            # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()
-            reported_len = scores.mean().item()
             len = costs.mean().item()
+
+            reported_len = -1
+            if scores:
+                scores = scores.to("cpu")
+                reported_len = scores.mean().item()
+
             print(info(f"{solver_name} {seed=}, {reported_len=:.8f}, {len=:.8f}, {duration=:.2f}s"))
+            # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()

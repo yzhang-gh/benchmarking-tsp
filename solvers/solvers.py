@@ -1,13 +1,19 @@
+import os
 from abc import ABC, abstractmethod
-import math
+from datetime import datetime
+from multiprocessing import Pool
+import time
 
+import numpy as np
 import torch
+from problems.tsp.tsp_baseline import read_tsplib
 
+from .dact.agent.ppo import PPO
+from .dact.problems.problem_tsp import TSP
+from .nlkh._swig_test import infer_SGN, method_wrapper
+from .nlkh.net.sgcn_model import SparseGCNModel
 from .pomo.TSP.POMO.TSPEnv import TSPEnv
 from .pomo.TSP.POMO.TSPModel import TSPModel
-
-from .dact.problems.problem_tsp import TSP
-from .dact.agent.ppo import PPO
 
 
 class BaseSovler(ABC):
@@ -45,7 +51,7 @@ class PomoSolver(BaseSovler):
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.to(device)
 
-    def solve(self, problems):
+    def solve(self, problems, seed=None):
         num_problems = len(problems)
         num_solved = 0
 
@@ -133,10 +139,9 @@ class DactSolver(BaseSovler):
         if opts.load_path is not None:
             self.agent.load(opts.load_path)
 
-    def solve(self, problems):
-        dataset_size = len(problems)
-
+    def solve(self, problems, seed=1234):
         opts = self.agent.opts
+        opts.seed = seed
         self.agent.eval()
         self.tsp_problem.eval()
 
@@ -150,4 +155,83 @@ class DactSolver(BaseSovler):
 
 
 class NlkhSolver(BaseSovler):
-    pass
+    """NeuroLKH"""
+
+    def __init__(self, opts):
+        self.opts = opts
+
+        net = SparseGCNModel()
+        saved = torch.load(opts.model_path)
+        net.load_state_dict(saved["model"])
+        net.to(opts.device)
+        self.net = net
+
+    def solve(self, problems, seed=1234):
+        opts = self.opts
+        data_size = len(problems)
+        graph_size = problems.shape[1]
+        max_trials = opts.max_trials
+
+        t1 = time.time()
+
+        ## feature generation
+        with Pool(opts.parallelism) as pool:
+            feats = list(pool.imap(method_wrapper, [("FeatGen", problem, graph_size) for problem in problems]))
+        feats = list(zip(*feats))
+        edge_index, edge_feat, inverse_edge_index, feat_runtime = feats
+        feat_runtime = np.sum(feat_runtime)
+        edge_index = np.concatenate(edge_index)
+        edge_feat = np.concatenate(edge_feat)
+        inverse_edge_index = np.concatenate(inverse_edge_index)
+
+        t2 = time.time()
+
+        with torch.no_grad():
+            candidate_Pi = infer_SGN(
+                self.net, problems, edge_index, edge_feat, inverse_edge_index, batch_size=opts.batch_size
+            )
+
+        invec = np.concatenate([problems.reshape(data_size, -1) * 1000000, candidate_Pi[: data_size]], 1)
+
+        if invec.shape[1] < max_trials * 2:
+            invec = np.concatenate([invec, np.zeros([invec.shape[0], max_trials * 2 - invec.shape[1]])], 1)
+        else:
+            invec = invec.copy()
+
+        ## call LKH with `invec`
+        run_name = f"nlkh_tmpfiles/{datetime.now():%Y%m%d_%H%M%S}"
+        os.makedirs(run_name, exist_ok=True)
+        num_digits = len(str(data_size - 1))
+        with Pool(opts.parallelism) as pool:
+            results = list(
+                pool.imap(
+                    method_wrapper,
+                    [
+                        (
+                            "NeuroLKH",
+                            invec[i],
+                            graph_size,
+                            os.path.join(run_name, f"{i:0{num_digits}d}.tour"),
+                            seed,
+                            max_trials,
+                        )
+                        for i in range(data_size)
+                    ],
+                )
+            )
+
+        t3 = time.time()
+
+        # results = np.array(results).reshape(data_size, -1, 2)[:, :max_trials, :]
+        # dataset_objs = results[:, :, 0].mean(0)
+        # dataset_runtimes = results[:, :, 1].sum(0)
+
+        tours = [read_tsplib(os.path.join(run_name, f"{i:0{num_digits}d}.tour")) for i in range(data_size)]
+
+        t4 = time.time()
+
+        feat_duration = t2 - t1
+        read_tour_duration = t4 - t3
+        print(read_tour_duration)
+
+        return torch.tensor(tours, dtype=torch.long), None

@@ -1,7 +1,7 @@
 from others import DotDict
 
 
-def get_pomo_solver_options(graph_size, model_path, epoch, seed, num_data_aug=1):
+def get_pomo_solver_options(graph_size, model_path, epoch, num_data_aug=1):
     env_params = {
         "problem_size": graph_size,
         "pomo_size": graph_size,
@@ -38,7 +38,7 @@ def get_pomo_solver_options(graph_size, model_path, epoch, seed, num_data_aug=1)
     return env_params, model_params, tester_params
 
 
-def get_dact_solver_options(graph_size, model_path, seed, num_data_aug=1, T_max=1500):
+def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
     opts = DotDict(
         {
             ## Overall settings
@@ -53,7 +53,6 @@ def get_dact_solver_options(graph_size, model_path, seed, num_data_aug=1, T_max=
             "no_saving": True,
             "use_assert": False,
             "no_DDP": True,
-            "seed": seed,
             ## DACT parameters
             "v_range": 6.0,
             "DACTencoder_head_num": 4,
@@ -104,4 +103,17 @@ def get_dact_solver_options(graph_size, model_path, seed, num_data_aug=1, T_max=
         }
     )
     opts.device = "cuda"
+    return opts
+
+
+def get_nlkh_solver_options(model_path):
+    opts = DotDict(
+        {
+            "model_path": model_path,
+            "device": "cuda",
+            "max_trials": 1000,
+            "parallelism": 1,
+            "batch_size": 1,
+        }
+    )
     return opts
