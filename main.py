@@ -1,42 +1,14 @@
 import numpy as np
 import os
-import pickle
 import time
 import torch
-from torch.utils.data import DataLoader, Dataset
 from solvers.solver_options import get_dact_solver_options, get_nlkh_solver_options, get_pomo_solver_options
 
 from solvers.solvers import DactSolver, NlkhSolver, PomoSolver
 from utils.data_utils import generate_seed, load_dataset
 
-Testset_Size = 1
-Graph_Size = 500
-
-
-# class TSPDataset(Dataset):
-#     def __init__(self, data=None, file_path=None, num_samples=1000000):
-#         super(TSPDataset, self).__init__()
-
-#         if file_path is not None:
-#             assert os.path.splitext(file_path)[1] == ".pkl"
-#             assert data == None
-
-#             with open(file_path, "rb") as f:
-#                 data = pickle.load(f)
-#             data = torch.tensor(data[:num_samples])
-
-#         self.data = [self.make_instance(d) for d in data]
-#         self.size = len(self.data)
-
-#     def make_instance(self, args):
-#         """used by DACT"""
-#         return {"coordinates": torch.FloatTensor(args)}
-
-#     def __len__(self):
-#         return self.size
-
-#     def __getitem__(self, idx):
-#         return self.data[idx]
+Testset_Size = 500
+Graph_Size = 100
 
 
 def get_costs(problems, tours):
@@ -58,12 +30,16 @@ def info(text):
     return f"\033[94m{text}\033[0m"
 
 
-if __name__ == "__main__":
-    # torch.set_printoptions(10)
+def human_readable_time(seconds):
+    if seconds < 60:
+        return f"{seconds:5.2f}s"
+    elif seconds < 3600:
+        return f"{seconds / 60:5.2f}m"
+    else:
+        return f"{seconds / 3600:5.2f}h"
 
-    seed = 1
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+
+if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
@@ -80,39 +56,63 @@ if __name__ == "__main__":
 
     print(f"Loaded '{testfile_name}'. {Testset_Size=}")
 
-    pomo_solver = PomoSolver(
-        *get_pomo_solver_options(Graph_Size, "pretrained/pomo/saved_tsp100_model2_longTrain", 3100, seed, 1)
-    )
-    dact_solver = DactSolver(get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", seed, 1, 1500))
-    nlkh_solver = NlkhSolver(get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt"))
+    pomo_options_list = [
+        get_pomo_solver_options(Graph_Size, "pretrained/pomo/saved_tsp100_model2_longTrain", 3100, 1),
+        get_pomo_solver_options(Graph_Size, "pretrained/pomo/saved_tsp100_model2_longTrain", 3100, 8),
+    ]
 
-    for solver_name, solver in [("POMO", pomo_solver), ("DACT", dact_solver), ("NeuroLKH", nlkh_solver)]:
+    dact_options_list = [
+        get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 1, 1000),
+        get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 1, 5000),
+        get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 4, 5000),
+    ]
 
-        if not solver_name == "NeuroLKH":
-            continue
+    nlkh_options_list = [get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt")]
+
+    for solver_name, solver_class, opts_list in [
+        ("POMO", PomoSolver, pomo_options_list),
+        ("DACT", DactSolver, dact_options_list),
+        ("NeuroLKH", NlkhSolver, nlkh_options_list),
+    ]:
 
         print(f"== {solver_name} ==")
 
-        for seed in [1, 2, 3, 4, 5]:#
-
-            np.random.seed(seed)
-            torch.manual_seed(seed)
-
-            t_start = time.time()
-
-            tours, scores = solver.solve(rue_problems, seed)
+        for opts in opts_list:
             
-            t_end = time.time()
-            duration = t_end - t_start
+            if solver_name == "POMO":
+                print(f"data_augmentation={opts[2]['aug_factor']}")
+            elif solver_name == "DACT":
+                print(f"data_augmentation={opts['val_m']}, max_steps={opts['T_max']}")
+            elif solver_name == "NeuroLKH":
+                print(f"max_trials={opts['max_trials']}")
 
-            tours = tours.to("cpu")
-            costs = get_costs(rue_problems, tours)
-            len = costs.mean().item()
+            solver = solver_class(opts)
 
-            reported_len = -1
-            if scores:
-                scores = scores.to("cpu")
-                reported_len = scores.mean().item()
+            seeds = [1, 2, 3]
+            if solver_name == "POMO":
+                seeds = [1]
 
-            print(info(f"{solver_name} {seed=}, {reported_len=:.8f}, {len=:.8f}, {duration=:.2f}s"))
-            # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()
+            for seed in seeds:
+
+                np.random.seed(seed)
+                torch.manual_seed(seed)
+
+                t_start = time.time()
+
+                tours, scores, time_fix = solver.solve(rue_problems, seed)
+
+                t_end = time.time()
+                duration = t_end - t_start - time_fix
+                duration = human_readable_time(duration)
+
+                tours = tours.to("cpu")
+                costs = get_costs(rue_problems, tours)
+                len = costs.mean().item()
+
+                reported_len = -1
+                if scores is not None:
+                    scores = scores.to("cpu")
+                    reported_len = scores.mean().item()
+
+                print(info(f"{seed=}, {reported_len=:.6f}, {len=:.6f}, {duration=:.2f} (+{time_fix:.2f}s)"))
+                # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()

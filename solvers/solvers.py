@@ -6,6 +6,7 @@ import time
 
 import numpy as np
 import torch
+import tqdm
 from problems.tsp.tsp_baseline import read_tsplib
 
 from .dact.agent.ppo import PPO
@@ -25,11 +26,9 @@ class BaseSovler(ABC):
 class PomoSolver(BaseSovler):
     """POMO"""
 
-    def __init__(self, env_params, model_params, tester_params):
+    def __init__(self, opts):
         # save arguments
-        self.env_params = env_params
-        self.model_params = model_params
-        self.tester_params = tester_params
+        self.env_params, self.model_params, self.tester_params = opts
 
         # CUDA
         if self.tester_params["use_cuda"]:
@@ -45,7 +44,7 @@ class PomoSolver(BaseSovler):
         self.model = TSPModel(device, **self.model_params)
 
         # Restore
-        model_load = tester_params["model_load"]
+        model_load = self.tester_params["model_load"]
         checkpoint_fullname = "{path}/checkpoint-{epoch}.pt".format(**model_load)
         checkpoint = torch.load(checkpoint_fullname, map_location=device)
         self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -69,7 +68,7 @@ class PomoSolver(BaseSovler):
 
             num_solved += batch_size
 
-        return torch.vstack(tours), torch.vstack(scores)
+        return torch.vstack(tours), torch.vstack(scores), 0
 
     def _solve_batch(self, problems):
         """see pomo/TSP/TSPTester.py:_test_one_batch"""
@@ -126,6 +125,14 @@ class DactSolver(BaseSovler):
     """DACT"""
 
     def __init__(self, opts):
+        self.opts = opts
+
+    def solve(self, problems, seed=1234):
+        t1 = time.time()
+
+        opts = self.opts
+        opts.seed = seed
+
         # Figure out what's the problem
         self.tsp_problem = TSP(
             p_size=opts.graph_size,
@@ -139,11 +146,11 @@ class DactSolver(BaseSovler):
         if opts.load_path is not None:
             self.agent.load(opts.load_path)
 
-    def solve(self, problems, seed=1234):
-        opts = self.agent.opts
-        opts.seed = seed
         self.agent.eval()
         self.tsp_problem.eval()
+
+        t2 = time.time()
+        env_init_duration = t2 - t1
 
         batch = {"coordinates": problems}
 
@@ -151,7 +158,7 @@ class DactSolver(BaseSovler):
             self.tsp_problem, opts.val_m, batch, do_sample=True, show_bar=True
         )
 
-        return best_sol, best_value
+        return best_sol, best_value, env_init_duration
 
 
 class NlkhSolver(BaseSovler):
@@ -176,7 +183,14 @@ class NlkhSolver(BaseSovler):
 
         ## feature generation
         with Pool(opts.parallelism) as pool:
-            feats = list(pool.imap(method_wrapper, [("FeatGen", problem, graph_size) for problem in problems]))
+            feats = list(
+                tqdm.tqdm(
+                    pool.imap(method_wrapper, [("FeatGen", problem, graph_size) for problem in problems]),
+                    desc="feature generation",
+                    total=data_size,
+                    bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
+                )
+            )
         feats = list(zip(*feats))
         edge_index, edge_feat, inverse_edge_index, feat_runtime = feats
         feat_runtime = np.sum(feat_runtime)
@@ -191,7 +205,7 @@ class NlkhSolver(BaseSovler):
                 self.net, problems, edge_index, edge_feat, inverse_edge_index, batch_size=opts.batch_size
             )
 
-        invec = np.concatenate([problems.reshape(data_size, -1) * 1000000, candidate_Pi[: data_size]], 1)
+        invec = np.concatenate([problems.reshape(data_size, -1) * 1000000, candidate_Pi[:data_size]], 1)
 
         if invec.shape[1] < max_trials * 2:
             invec = np.concatenate([invec, np.zeros([invec.shape[0], max_trials * 2 - invec.shape[1]])], 1)
@@ -204,19 +218,24 @@ class NlkhSolver(BaseSovler):
         num_digits = len(str(data_size - 1))
         with Pool(opts.parallelism) as pool:
             results = list(
-                pool.imap(
-                    method_wrapper,
-                    [
-                        (
-                            "NeuroLKH",
-                            invec[i],
-                            graph_size,
-                            os.path.join(run_name, f"{i:0{num_digits}d}.tour"),
-                            seed,
-                            max_trials,
-                        )
-                        for i in range(data_size)
-                    ],
+                tqdm.tqdm(
+                    pool.imap(
+                        method_wrapper,
+                        [
+                            (
+                                "NeuroLKH",
+                                invec[i],
+                                graph_size,
+                                os.path.join(run_name, f"{i:0{num_digits}d}.tour"),
+                                seed,
+                                max_trials,
+                            )
+                            for i in range(data_size)
+                        ],
+                    ),
+                    desc="call LKH",
+                    total=data_size,
+                    bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
                 )
             )
 
@@ -232,6 +251,5 @@ class NlkhSolver(BaseSovler):
 
         feat_duration = t2 - t1
         read_tour_duration = t4 - t3
-        print(read_tour_duration)
 
-        return torch.tensor(tours, dtype=torch.long), None
+        return torch.tensor(tours, dtype=torch.long), None, read_tour_duration
