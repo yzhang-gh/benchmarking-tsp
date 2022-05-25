@@ -103,5 +103,5 @@ if __name__ == "__main__":
                     scores = scores.to("cpu")
                     reported_len = scores.mean().item()
 
-                print(info(f"{seed=}, {reported_len=:.6f}, {len=:.6f}, {duration=:.2f} (+{time_fix:.2f}s)"))
+                print(info(f"{seed=}, {reported_len=:.6f}, {len=:.6f}, {duration=!s} (+{time_fix:.2f}s)"))
                 # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()

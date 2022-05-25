@@ -11,7 +11,7 @@ from problems.tsp.tsp_baseline import read_tsplib
 
 from .dact.agent.ppo import PPO
 from .dact.problems.problem_tsp import TSP
-from .nlkh._swig_test import infer_SGN, method_wrapper
+from .nlkh._swig_test import generate_feat, infer_SGN, method_wrapper
 from .nlkh.net.sgcn_model import SparseGCNModel
 from .pomo.TSP.POMO.TSPEnv import TSPEnv
 from .pomo.TSP.POMO.TSPModel import TSPModel
@@ -182,7 +182,7 @@ class NlkhSolver(BaseSovler):
         t1 = time.time()
 
         ## feature generation
-        feats = [method_wrapper("FeatGen", problem, graph_size) for problem in problems]
+        feats = [generate_feat(problem, graph_size, seed) for problem in problems]
         feats = list(zip(*feats))
         edge_index, edge_feat, inverse_edge_index, feat_runtime = feats
         feat_runtime = np.sum(feat_runtime)
@@ -203,6 +203,8 @@ class NlkhSolver(BaseSovler):
             invec = np.concatenate([invec, np.zeros([invec.shape[0], max_trials * 2 - invec.shape[1]])], 1)
         else:
             invec = invec.copy()
+
+        t3 = time.time()
 
         ## call LKH with `invec`
         run_name = f"nlkh_tmpfiles/{datetime.now():%Y%m%d_%H%M%S}"
@@ -231,14 +233,14 @@ class NlkhSolver(BaseSovler):
                 )
             )
 
-        t3 = time.time()
+        t4 = time.time()
 
         tours = [read_tsplib(os.path.join(run_name, f"{i:0{num_digits}d}.tour")) for i in range(data_size)]
 
-        t4 = time.time()
+        t5 = time.time()
 
-        ## both less than 1 second
-        feat_duration = t2 - t1
-        read_tour_duration = t4 - t3
+        feat_duration = t2 - t1       ## ~1s for 1000 test instances
+        sgn_infer_duration = t3 - t2
+        read_tour_duration = t5 - t4  ## <<1s
 
         return torch.tensor(tours, dtype=torch.long), None, read_tour_duration
