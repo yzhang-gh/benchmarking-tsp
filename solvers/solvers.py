@@ -182,15 +182,7 @@ class NlkhSolver(BaseSovler):
         t1 = time.time()
 
         ## feature generation
-        with Pool(opts.parallelism) as pool:
-            feats = list(
-                tqdm.tqdm(
-                    pool.imap(method_wrapper, [("FeatGen", problem, graph_size) for problem in problems]),
-                    desc="feature generation",
-                    total=data_size,
-                    bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
-                )
-            )
+        feats = [method_wrapper("FeatGen", problem, graph_size) for problem in problems]
         feats = list(zip(*feats))
         edge_index, edge_feat, inverse_edge_index, feat_runtime = feats
         feat_runtime = np.sum(feat_runtime)
@@ -217,7 +209,7 @@ class NlkhSolver(BaseSovler):
         os.makedirs(run_name, exist_ok=True)
         num_digits = len(str(data_size - 1))
         with Pool(opts.parallelism) as pool:
-            results = list(
+            list(
                 tqdm.tqdm(
                     pool.imap(
                         method_wrapper,
@@ -233,22 +225,19 @@ class NlkhSolver(BaseSovler):
                             for i in range(data_size)
                         ],
                     ),
-                    desc="call LKH",
                     total=data_size,
                     bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
+                    leave=False,
                 )
             )
 
         t3 = time.time()
 
-        # results = np.array(results).reshape(data_size, -1, 2)[:, :max_trials, :]
-        # dataset_objs = results[:, :, 0].mean(0)
-        # dataset_runtimes = results[:, :, 1].sum(0)
-
         tours = [read_tsplib(os.path.join(run_name, f"{i:0{num_digits}d}.tour")) for i in range(data_size)]
 
         t4 = time.time()
 
+        ## both less than 1 second
         feat_duration = t2 - t1
         read_tour_duration = t4 - t3
 

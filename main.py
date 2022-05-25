@@ -1,9 +1,11 @@
-import numpy as np
 import os
 import time
-import torch
-from solvers.solver_options import get_dact_solver_options, get_nlkh_solver_options, get_pomo_solver_options
 
+import numpy as np
+import torch
+
+from others import bold, human_readable_time, info
+from solvers.solver_options import get_dact_solver_options, get_nlkh_solver_options, get_pomo_solver_options
 from solvers.solvers import DactSolver, NlkhSolver, PomoSolver
 from utils.data_utils import generate_seed, load_dataset
 
@@ -24,19 +26,6 @@ def get_costs(problems, tours):
     rolled_coords = coords.roll(-1, dims=1)
     tour_lens = torch.linalg.norm(coords - rolled_coords, dim=2).sum(1)
     return tour_lens
-
-
-def info(text):
-    return f"\033[94m{text}\033[0m"
-
-
-def human_readable_time(seconds):
-    if seconds < 60:
-        return f"{seconds:5.2f}s"
-    elif seconds < 3600:
-        return f"{seconds / 60:5.2f}m"
-    else:
-        return f"{seconds / 3600:5.2f}h"
 
 
 if __name__ == "__main__":
@@ -75,10 +64,10 @@ if __name__ == "__main__":
         ("NeuroLKH", NlkhSolver, nlkh_options_list),
     ]:
 
-        print(f"== {solver_name} ==")
+        print(bold(f"== {solver_name} =="))
 
         for opts in opts_list:
-            
+
             if solver_name == "POMO":
                 print(f"data_augmentation={opts[2]['aug_factor']}")
             elif solver_name == "DACT":
