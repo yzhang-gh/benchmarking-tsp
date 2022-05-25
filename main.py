@@ -56,7 +56,7 @@ if __name__ == "__main__":
         get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 4, 5000),
     ]
 
-    nlkh_options_list = [get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt")]
+    nlkh_options_list = [get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt", 100)]
 
     for solver_name, solver_class, opts_list in [
         ("POMO", PomoSolver, pomo_options_list),

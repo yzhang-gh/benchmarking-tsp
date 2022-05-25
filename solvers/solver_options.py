@@ -106,12 +106,12 @@ def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
     return opts
 
 
-def get_nlkh_solver_options(model_path):
+def get_nlkh_solver_options(model_path, max_trials):
     opts = DotDict(
         {
             "model_path": model_path,
             "device": "cuda",
-            "max_trials": 1000,
+            "max_trials": max_trials,
             "parallelism": 1,
             "batch_size": 1,
         }
