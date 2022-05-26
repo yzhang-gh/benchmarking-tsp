@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 class DotDict(dict):
     def __getattr__(self, key):
         try:
@@ -33,3 +36,7 @@ def human_readable_time(seconds):
         return f"{seconds / 60:5.2f}m"
     else:
         return f"{seconds / 3600:5.2f}h"
+
+
+def datetime_str():
+    return f"{datetime.now():%Y%m%d_%H%M%S}"

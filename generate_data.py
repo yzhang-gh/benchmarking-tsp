@@ -8,7 +8,7 @@ from utils.data_utils import generate_seed, save_dataset
 from utils.file_utils import load_tsplib_file
 
 
-def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mode="train", seed=None, num_clusts=None):
+def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mode="train", seed=None, num_clusts=None, save=True, quiet=False):
     """
     mode: This is used to generate the default random seed if seed is not provided.
     """
@@ -17,7 +17,8 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
 
     np.random.seed(seed)
 
-    print(f"Generating {distribution}{graph_size} ({dataset_size} instances), {seed=}")
+    if not quiet:
+        print(f"Generating {distribution}{graph_size} ({dataset_size} instances), {seed=}")
 
     dataset_id = f"{distribution}{graph_size}_seed{seed}"
 
@@ -32,7 +33,7 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
                 min_num_clusts = max_num_clusts = 10
             else:
                 raise NotImplementedError()
-        else:  # rue
+        else:
             min_num_clusts = max_num_clusts = num_clusts
 
         # create subfolders named `dataset_id` to store `.tsp` and other tmp files
@@ -44,7 +45,8 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
             f"Rscript call_netgen.R {graph_size} {min_num_clusts} {max_num_clusts}"
             f" {data_size_per_clust} {seed} '{os.path.join(data_dir, dataset_id)}'"
         )
-        print("  " + cmd)
+        if not quiet:
+            print("  " + cmd)
         subprocess.run(cmd, shell=True, check=True)
 
         num_digits = len(str(dataset_size - 1))
@@ -55,8 +57,9 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
         # rescale, from {1, 2, ..., 1000000} to [0, 1)
         dataset = (dataset - 1) / (1000000 - 1)
 
-    save_dataset(dataset, os.path.join(data_dir, dataset_id))
-    print(f"Saved to {os.path.join(data_dir, dataset_id)}.pkl")
+    if save:
+        save_dataset(dataset, os.path.join(data_dir, dataset_id))
+        print(f"Saved to {os.path.join(data_dir, dataset_id)}.pkl")
 
     return dataset
 

@@ -1,14 +1,14 @@
 import os
 from abc import ABC, abstractmethod
-from datetime import datetime
 from multiprocessing import Pool
 import time
 
 import numpy as np
 import torch
 import tqdm
-from problems.tsp.tsp_baseline import read_tsplib
 
+from others import datetime_str
+from problems.tsp.tsp_baseline import read_tsplib
 from .dact.agent.ppo import PPO
 from .dact.problems.problem_tsp import TSP
 from .nlkh._swig_test import generate_feat, infer_SGN, method_wrapper
@@ -207,7 +207,7 @@ class NlkhSolver(BaseSovler):
         t3 = time.time()
 
         ## call LKH with `invec`
-        run_name = f"nlkh_tmpfiles/{datetime.now():%Y%m%d_%H%M%S}"
+        run_name = f"nlkh_tmpfiles/{datetime_str()}"
         os.makedirs(run_name, exist_ok=True)
         num_digits = len(str(data_size - 1))
         with Pool(opts.parallelism) as pool:
