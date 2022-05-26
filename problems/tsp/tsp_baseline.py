@@ -87,17 +87,12 @@ def solve_concorde_log(executable, dot_tsp_file_dir, tsp_file_name, loc, disable
             tour_len = calc_tsp_length(loc, tour)
 
             if not disable_cache:
-            save_dataset((tour, tour_len, duration), output_filename)
+                save_dataset((tour, tour_len, duration), output_filename)
 
         if int_distance:
-            int_tour_len = calc_tsp_int_length(loc, tour)
+            tour_len = read_concorde_int_tour_length(log_filename)
 
-        # print(
-        #     f"{dot_tsp_file_dir},  {tsp_file_name=},  {tour_len=:.3f},  {duration=:7.2f}s,"
-        #     + (f"  {int_tour_len=:8}" if int_distance else "")
-        # )
-
-        return int_tour_len if int_distance else tour_len, tour, duration
+        return tour_len, tour, duration
 
     except Exception as e:
         print("Exception occured")
@@ -159,6 +154,10 @@ def write_tsplib(filename, loc, name="problem"):
     file_dir = os.path.split(filename)[0]
     os.makedirs(file_dir, exist_ok=True)
 
+    ## TSPLIB does not take floats
+    ## [0, 1] to {1, 2, ..., 1000000}
+    int_loc = 1 + np.ceil((loc * 999999).astype(int)).astype(int)
+
     with open(filename, 'w') as f:
         f.write("\n".join([
             "{} : {}".format(k, v)
@@ -171,10 +170,7 @@ def write_tsplib(filename, loc, name="problem"):
         ]))
         f.write("\n")
         f.write("NODE_COORD_SECTION\n")
-        f.write("\n".join([
-            "{}\t{}\t{}".format(i + 1, 1 + ceil(x * 999999), 1 + ceil(y * 999999))  # tsplib does not take floats
-            for i, (x, y) in enumerate(loc)
-        ]))
+        f.write("\n".join(["{}\t{}\t{}".format(i + 1, x, y) for i, (x, y) in enumerate(int_loc)]))
         f.write("\n")
         f.write("EOF\n")
 
@@ -221,12 +217,16 @@ def calc_tsp_length(loc, tour):
     return np.linalg.norm(sorted_locs[1:] - sorted_locs[:-1], axis=-1).sum()
 
 
-def calc_tsp_int_length(loc, tour):
-    assert len(np.unique(tour)) == len(tour), "Tour cannot contain duplicates"
-    assert len(tour) == len(loc)
-    loc = 1 + np.ceil(loc * 999999)
-    sorted_locs = np.array(loc)[np.concatenate((tour, [tour[0]]))]
-    return int(np.round(np.linalg.norm(sorted_locs[1:] - sorted_locs[:-1], axis=-1)).sum())
+def read_concorde_int_tour_length(filename):
+    int_tour_len = -1
+    with open(filename, 'r') as f:
+        for line in f:
+            if "Optimal Solution: " in line:
+                ## format: "Optimal Solution: xxxxxxx.00"
+                int_tour_len = int(line.split(":")[1].strip())
+                break
+    assert int_tour_len != -1
+    return int_tour_len
 
 
 def _calc_insert_cost(D, prv, nxt, ins):
