@@ -18,6 +18,6 @@ def load_tsplib_file(data_file, normalize=False):
     nodes_coord = np.array(nodes_coord)
 
     if normalize:
-        nodes_coord = (nodes_coord - 1) / (1000000 - 1)
+        nodes_coord = (nodes_coord - 1) / 1000000
 
     return nodes_coord

@@ -155,8 +155,9 @@ def write_tsplib(filename, loc, name="problem"):
     os.makedirs(file_dir, exist_ok=True)
 
     ## TSPLIB does not take floats
-    ## [0, 1] to {1, 2, ..., 1000000}
-    int_loc = 1 + np.ceil((loc * 999999).astype(int)).astype(int)
+    ## [0, 1) to {1, 2, ..., 1000000}
+    int_loc = np.ceil(loc * 1000000)
+    int_loc[int_loc == 0] = 1
 
     with open(filename, 'w') as f:
         f.write("\n".join([

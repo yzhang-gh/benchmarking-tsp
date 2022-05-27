@@ -25,6 +25,10 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
     if distribution == "rue":
         dataset = np.random.uniform(size=(dataset_size, graph_size, 2))
 
+        ## TSPLib {1, 2, ..., 1000000}, will rescale later
+        dataset = np.ceil(dataset * 1000000)
+        dataset[dataset == 0] = 1
+
     elif distribution == "clust":
         if not num_clusts:
             if graph_size in [50, 500]:
@@ -54,8 +58,9 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
         for i in range(dataset_size):
             tsp_instances.append(load_tsplib_file(os.path.join(data_dir, dataset_id, f"{i:0{num_digits}d}.tsp")))
         dataset = np.stack(tsp_instances)
-        # rescale, from {1, 2, ..., 1000000} to [0, 1)
-        dataset = (dataset - 1) / (1000000 - 1)
+
+    ## rescale, from {1, 2, ..., 1000000} to [0, 1)
+    dataset = (dataset - 1) / 1000000
 
     if save:
         save_dataset(dataset, os.path.join(data_dir, dataset_id))
