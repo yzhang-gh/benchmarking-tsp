@@ -27,6 +27,12 @@ R
 > Sys.setenv(TAR = "/bin/tar")
 > devtools::install_github("jakobbossek/netgen")
 > q()  # quit
+
+# Training
+conda install tensorboard
+
+# === POMO specific ===
+conda install pytz
 ```
 
 ## Data Organization and Naming
