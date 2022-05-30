@@ -133,7 +133,6 @@ class DactSolver(BaseSovler):
         opts = self.opts
         opts.seed = seed
 
-        # Figure out what's the problem
         self.tsp_problem = TSP(
             p_size=opts.graph_size,
             step_method=opts.step_method,

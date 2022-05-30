@@ -95,14 +95,11 @@ def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
             "output_dir": "outputs",
             "run_name": "run_name",
             "checkpoint_epochs": 1,
-            "world_size": 1,
-            "distributed": False,
-            "use_cuda": True,
-            "P": 250,
-            "save_dir": "",
         }
     )
     opts.device = "cuda"
+    opts.use_cuda = True
+    opts.P = 250
     return opts
 
 

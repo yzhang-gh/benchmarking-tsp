@@ -33,17 +33,17 @@ optimizer_params = {
     "optimizer": {"lr": 1e-4, "weight_decay": 1e-6},
     "scheduler": {
         "milestones": [
-            3001,
+            500, 1000
         ],
-        "gamma": 0.1,
+        "gamma": 0.2,
     },
 }
 
 trainer_params = {
     "use_cuda": True,
     "cuda_device_num": 0,
-    "epochs": 10,
-    "train_episodes": 1000,
+    "epochs": 1000,
+    "train_episodes": 10000,
     "train_batch_size": 64,
     "logging": {
         "model_save_interval": 100,
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     start_epoch = 1
     model_load = trainer_params["model_load"]
     if model_load["enable"]:
-        checkpoint_fullname = "{path}/checkpoint_{epoch}.pt".format(**model_load)
+        checkpoint_fullname = "{path}/epoch-{epoch}.pt".format(**model_load)
         checkpoint = torch.load(checkpoint_fullname, map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -220,4 +220,4 @@ if __name__ == "__main__":
                 "optimizer_state_dict": optimizer.state_dict(),
                 "scheduler_state_dict": scheduler.state_dict(),
             }
-            torch.save(checkpoint_dict, f"{save_dir}/checkpoint_{epoch}.pt")
+            torch.save(checkpoint_dict, f"{save_dir}/epoch-{epoch}.pt")
