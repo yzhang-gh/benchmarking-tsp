@@ -33,20 +33,20 @@ optimizer_params = {
     "optimizer": {"lr": 1e-4, "weight_decay": 1e-6},
     "scheduler": {
         "milestones": [
-            500, 1000
+            3001
         ],
-        "gamma": 0.2,
+        "gamma": 0.1,
     },
 }
 
 trainer_params = {
     "use_cuda": True,
     "cuda_device_num": 0,
-    "epochs": 1000,
-    "train_episodes": 10000,
+    "epochs": 3100,
+    "train_episodes": 100000,
     "train_batch_size": 64,
     "logging": {
-        "model_save_interval": 100,
+        "model_save_interval": 20,
         "img_save_interval": 100,
         "log_image_params_1": {"json_foldername": "log_image_style", "filename": "style_tsp_100.json"},
         "log_image_params_2": {"json_foldername": "log_image_style", "filename": "style_loss_1.json"},
@@ -161,6 +161,7 @@ if __name__ == "__main__":
     scheduler = Scheduler(optimizer, **optimizer_params["scheduler"])
 
     save_dir = f"runs/pomo/n{env_params['problem_size']}_{datetime_str()}"
+    print("saved to", save_dir)
     writer = SummaryWriter(log_dir=save_dir)
 
     # Restore
