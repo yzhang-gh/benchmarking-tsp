@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from generate_data import generate_tsp_data
 
-from others import DotDict, datetime_str, human_readable_time
+from others import datetime_str, human_readable_time
 from solvers.dact.agent.ppo import PPO, train_batch
+from solvers.dact.options import get_options
 from solvers.dact.problems.problem_tsp import TSP, _TSPDataset
 from solvers.dact.utils.logger import log_to_tb_val
 from utils.data_utils import load_dataset
@@ -20,71 +21,6 @@ T_max = 1500
 num_data_aug = 1
 model_path = None
 val_dataset_path = "data/clust100_seed1005.pkl"
-
-opts = DotDict(
-    {
-        ## Overall settings
-        "problem": "tsp",
-        "graph_size": graph_size,
-        "dummy_rate": 0.5,
-        "step_method": "2_opt",
-        "init_val_met": "random",
-        "no_cuda": False,
-        "no_tb": True,
-        "show_figs": False,
-        "no_saving": True,
-        "use_assert": False,
-        "no_DDP": True,
-        ## DACT parameters
-        "v_range": 6.0,
-        "DACTencoder_head_num": 4,
-        "DACTdecoder_head_num": 4,
-        "critic_head_num": 6,
-        "embedding_dim": 64,
-        "hidden_dim": 64,
-        "n_encode_layers": 3,
-        "normalization": "layer",
-        ## Training parameters
-        "RL_agent": "ppo",
-        "gamma": 0.999,
-        "K_epochs": 3,
-        "eps_clip": 0.1,
-        "T_train": 200,
-        "n_step": 4,
-        "best_cl": False,
-        "Xi_CL": 2,
-        "batch_size": 200,
-        "epoch_end": 200,
-        "epoch_size": 4000,
-        "lr_model": 0.0001,
-        "lr_critic": 3e-05,
-        "lr_decay": 0.985,
-        "max_grad_norm": 0.2,
-        ## Inference and validation parameters
-        "T_max": T_max,
-        "eval_only": False,
-        "val_size": 200,  # 1000
-        "val_dataset": val_dataset_path,
-        "val_m": num_data_aug,
-        ## Resume and load models
-        "load_path": model_path,
-        "resume": None,
-        "epoch_start": 0,
-        ## Logs/output settings
-        "no_progress_bar": False,
-        "log_dir": "logs",
-        "log_step": 50,
-        "output_dir": "outputs",
-        "run_name": "run_name",
-        "checkpoint_epochs": 1,
-    }
-)
-
-opts.world_size = 1
-opts.distributed = False
-opts.use_cuda = True
-opts.P = 1e10
-opts.device = "cuda"
 
 
 def generate_data(opts):
@@ -150,14 +86,26 @@ def validate(rank, problem, agent, val_data_path, tb_logger, distributed=False, 
 
 if __name__ == "__main__":
 
-    seed = 0
+    seed = 1234
     np.random.seed(seed)
     torch.manual_seed(seed)
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+    opts = get_options("")
+    opts.distributed = False
+    opts.use_cuda = True
+    opts.device = "cuda"
+
     opts.seed = seed
+
+    opts.graph_size = graph_size
+    opts.T_max = T_max
+    opts.val_m = num_data_aug
+    opts.val_dataset = val_dataset_path
+    opts.max_grad_norm = 0.2
+    opts.Xi_CL = 2
 
     tsp_problem = TSP(
         p_size=opts.graph_size,
@@ -181,7 +129,7 @@ if __name__ == "__main__":
     opts.save_dir = save_dir
     tb_logger = SummaryWriter(log_dir=save_dir)
     with open(os.path.join(save_dir, "opts.json"), "w") as w:
-        w.write(json.dumps(dict(opts.items()), indent=4))
+        w.write(json.dumps(vars(opts), indent=4))
 
     for state in agent.optimizer.state.values():
         for k, v in state.items():
