@@ -1,3 +1,6 @@
+import json
+import math
+import os
 import time
 
 import torch
@@ -12,6 +15,8 @@ from others import datetime_str, human_readable_time
 from solvers.pomo.TSP.POMO.TSPEnv import TSPEnv
 from solvers.pomo.TSP.POMO.TSPModel import TSPModel
 from solvers.pomo.utils.utils import AverageMeter
+
+save_dir = "/data0/zhangyu/runs/pomo"
 
 env_params = {
     "problem_size": 100,
@@ -146,7 +151,8 @@ if __name__ == "__main__":
     else:
         device = torch.device("cpu")
 
-    seed = 0
+    seed = 1234
+    trainer_params["seed"] = seed
     np.random.seed(seed)
     torch.manual_seed(seed)
 
@@ -156,9 +162,12 @@ if __name__ == "__main__":
     optimizer = Optimizer(model.parameters(), **optimizer_params["optimizer"])
     scheduler = Scheduler(optimizer, **optimizer_params["scheduler"])
 
-    save_dir = f"runs/pomo/n{env_params['problem_size']}_{datetime_str()}"
+    run_name = f"n{env_params['problem_size']}_{datetime_str()}"
+    save_dir = os.path.join(save_dir, run_name)
     print("saved to", save_dir)
     writer = SummaryWriter(log_dir=save_dir)
+    with open(os.path.join(save_dir, "opts.json"), "w") as w:
+        w.write(json.dumps([env_params, model_params, optimizer_params, trainer_params], indent=4))
 
     # Restore
     start_epoch = 1
@@ -178,7 +187,7 @@ if __name__ == "__main__":
     end_epoch = trainer_params["epochs"]
     for epoch in range(start_epoch, end_epoch + 1):
         pbar = tqdm.tqdm(
-            total=ceil(trainer_params["train_episodes"] // trainer_params["train_batch_size"])
+            total=math.ceil(trainer_params["train_episodes"] // trainer_params["train_batch_size"]),
             desc=f"Epoch {epoch}/{end_epoch} [data generation]",
             bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
             leave=False,
@@ -202,12 +211,17 @@ if __name__ == "__main__":
         data = torch.tensor(data, dtype=torch.float)  # numpy ndarray's default dtype is double
 
         pbar.set_description(f"Epoch {epoch}/{end_epoch} [train]")
-        score, loss = _train_one_epoch(epoch, data, pbar)
-        pbar.write(f"Epoch {epoch}/{end_epoch} [train] {score=:.4f}, 'loss'={loss:.4f}")
-        pbar.close()
+        t1 = time.time()
 
-        writer.add_scalar("train_score", train_score, epoch)
-        writer.add_scalar("train_loss", train_loss, epoch)
+        score, loss = _train_one_epoch(epoch, data, pbar)
+
+        t2 = time.time()
+        pbar.close()
+        duration = human_readable_time(t2 - t1)
+        print(f"Epoch {epoch}/{end_epoch} [train] {score=:.4f}, 'loss'={loss:.4f}, duration={duration}")
+
+        writer.add_scalar("train_score", score, epoch)
+        writer.add_scalar("train_loss", loss, epoch)
 
         all_done = epoch == trainer_params["epochs"]
         model_save_interval = trainer_params["logging"]["model_save_interval"]
