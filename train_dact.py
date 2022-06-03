@@ -124,7 +124,9 @@ if __name__ == "__main__":
         print("Resuming after {}".format(epoch_resume))
         agent.opts.epoch_start = epoch_resume + 1
 
-    save_dir = f"runs/dact/n{opts.graph_size}_{datetime_str()}"
+    save_dir = "runs/dact"
+    run_name = f"n{opts.graph_size}_{datetime_str()}"
+    save_dir = os.path.join(save_dir, run_name)
     print("saved to", save_dir)
     opts.save_dir = save_dir
     tb_logger = SummaryWriter(log_dir=save_dir)
@@ -138,10 +140,16 @@ if __name__ == "__main__":
 
     # Start the actual training loop
     for epoch in range(opts.epoch_start, opts.epoch_end):
+        pbar = tqdm.tqdm(
+            total=(opts.K_epochs) * (opts.epoch_size // opts.batch_size) * (opts.T_train // opts.n_step),
+            desc=f"Epoch {epoch + 1}/{opts.epoch_end} [data generation]",
+            bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
+            leave=False,
+        )
 
         data, duration = generate_data(opts)
         if epoch == opts.epoch_start:
-            print(f"generated {opts.epoch_size} instances (time={human_readable_time(duration)})")
+            pbar.write(f"generated {opts.epoch_size} instances (time={human_readable_time(duration)})")
 
         # training_dataset = tsp_problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size)
         training_dataset = _TSPDataset(data)
@@ -155,16 +163,16 @@ if __name__ == "__main__":
         lr_str = "actor lr={:.3e}, critic lr={:.3e}".format(
             agent.optimizer.param_groups[0]["lr"], agent.optimizer.param_groups[1]["lr"]
         )
-        pbar = tqdm.tqdm(
-            total=(opts.K_epochs) * (opts.epoch_size // opts.batch_size) * (opts.T_train // opts.n_step),
-            desc=f"Epoch {epoch + 1}/{opts.epoch_end} [train] {lr_str}",
-            bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
-            leave=False,
-        )
+        pbar.set_description(f"Epoch {epoch + 1}/{opts.epoch_end} [train] {lr_str}")
+        t1 = time.time()
+
         for batch_id, batch in enumerate(training_dataloader):
             train_batch(0, tsp_problem, agent, epoch, step, batch, tb_logger, opts, pbar)
             step += 1
+        
+        t2 = time.time()
         pbar.close()
+        duration = human_readable_time(t2 - t1)
 
         agent.lr_scheduler.step()
 

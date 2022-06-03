@@ -142,6 +142,22 @@ def _train_one_batch(batch_data):
     return score_mean.item(), loss_mean.item()
 
 
+def generate_data(opts):
+    data_seed = np.random.randint(1000000)
+    t1 = time.time()
+    data = generate_tsp_data(
+        "pomo_tmpfiles",
+        trainer_params["train_episodes"],
+        env_params["problem_size"],
+        distribution="clust",
+        seed=training_data_seed,
+        save=False,
+        quiet=True,
+    )
+    t2 = time.time()
+    return data, t2 - t1
+
+
 if __name__ == "__main__":
     # cuda
     if trainer_params["use_cuda"]:
@@ -193,20 +209,9 @@ if __name__ == "__main__":
             leave=False,
         )
 
-        training_data_seed = np.random.randint(1000000)
-        t1 = time.time()
-        data = generate_tsp_data(
-            "pomo_tmpfiles",
-            trainer_params["train_episodes"],
-            env_params["problem_size"],
-            distribution="clust",
-            seed=training_data_seed,
-            save=False,
-            quiet=True,
-        )
-        t2 = time.time()
+        data, duration = generate_data()
         if epoch == start_epoch:
-            pbar.write(f"generated {trainer_params['train_episodes']} instances (time={human_readable_time(t2 - t1)})")
+            pbar.write(f"generated {trainer_params['train_episodes']} instances (time={human_readable_time(human_readable_time(duration))})")
 
         data = torch.tensor(data, dtype=torch.float)  # numpy ndarray's default dtype is double
 
