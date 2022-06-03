@@ -60,8 +60,6 @@ trainer_params = {
 
 
 def _train_one_epoch(epoch, training_data, pbar=None):
-    pbar.set_description(f"Epoch {epoch} [train]")
-
     score_AM = AverageMeter()
     loss_AM = AverageMeter()
 
@@ -77,6 +75,7 @@ def _train_one_epoch(epoch, training_data, pbar=None):
 
         score_AM.update(avg_score, batch_size)
         loss_AM.update(avg_loss, batch_size)
+        pbar.update(1)
 
         num_seen_data += batch_size
 
@@ -91,9 +90,6 @@ def _train_one_epoch(epoch, training_data, pbar=None):
                 )
 
     scheduler.step()
-
-    # Log Once, for each epoch
-    pbar.write("Epoch {:d} [train] score={:.4f}, 'loss'={:.4f}".format(epoch, score_AM.avg, loss_AM.avg))
 
     return score_AM.avg, loss_AM.avg
 
@@ -179,16 +175,14 @@ if __name__ == "__main__":
 
     model.to(device)
 
-    for epoch in (
-        pbar := tqdm.trange(
-            start_epoch,
-            trainer_params["epochs"] + 1,
-            desc="Epoch 1 [train]",
+    end_epoch = trainer_params["epochs"]
+    for epoch in range(start_epoch, end_epoch + 1):
+        pbar = tqdm.tqdm(
+            total=ceil(trainer_params["train_episodes"] // trainer_params["train_batch_size"])
+            desc=f"Epoch {epoch}/{end_epoch} [data generation]",
             bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
             leave=False,
         )
-    ):
-        pbar.set_description("data generation")
 
         training_data_seed = np.random.randint(1000000)
         t1 = time.time()
@@ -206,7 +200,11 @@ if __name__ == "__main__":
             pbar.write(f"generated {trainer_params['train_episodes']} instances (time={human_readable_time(t2 - t1)})")
 
         data = torch.tensor(data, dtype=torch.float)  # numpy ndarray's default dtype is double
-        train_score, train_loss = _train_one_epoch(epoch, data, pbar)
+
+        pbar.set_description(f"Epoch {epoch}/{end_epoch} [train]")
+        score, loss = _train_one_epoch(epoch, data, pbar)
+        pbar.write(f"Epoch {epoch}/{end_epoch} [train] {score=:.4f}, 'loss'={loss:.4f}")
+        pbar.close()
 
         writer.add_scalar("train_score", train_score, epoch)
         writer.add_scalar("train_loss", train_loss, epoch)
