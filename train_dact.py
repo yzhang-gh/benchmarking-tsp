@@ -63,8 +63,6 @@ def validate(rank, problem, agent, val_data_path, tb_logger, distributed=False, 
     search_history = best_hist
     reward = r
 
-    print("best value {:7.4f} +- {:6.4f}".format(best_value.mean(), torch.std(best_value) / np.sqrt(opts.val_size)))
-
     # log to tb
     if not opts.no_tb:
         log_to_tb_val(
@@ -82,6 +80,8 @@ def validate(rank, problem, agent, val_data_path, tb_logger, distributed=False, 
             show_figs=opts.show_figs,
             epoch=_id,
         )
+
+    return best_value.mean(), torch.std(best_value) / np.sqrt(opts.val_size)
 
 
 if __name__ == "__main__":
@@ -139,13 +139,6 @@ if __name__ == "__main__":
     # Start the actual training loop
     for epoch in range(opts.epoch_start, opts.epoch_end):
 
-        # Training mode
-        print(
-            "Training {}/{} actor lr={:.3e} critic lr={:.3e}".format(
-                epoch + 1, opts.epoch_end, agent.optimizer.param_groups[0]["lr"], agent.optimizer.param_groups[1]["lr"]
-            )
-        )
-
         data, duration = generate_data(opts)
         if epoch == opts.epoch_start:
             print(f"generated {opts.epoch_size} instances (time={human_readable_time(duration)})")
@@ -159,9 +152,12 @@ if __name__ == "__main__":
 
         # start training
         step = epoch * (opts.epoch_size // opts.batch_size)
+        lr_str = "actor lr={:.3e}, critic lr={:.3e}".format(
+            agent.optimizer.param_groups[0]["lr"], agent.optimizer.param_groups[1]["lr"]
+        )
         pbar = tqdm.tqdm(
             total=(opts.K_epochs) * (opts.epoch_size // opts.batch_size) * (opts.T_train // opts.n_step),
-            desc=f"Epoch {epoch + 1}/{opts.epoch_end} training",
+            desc=f"Epoch {epoch + 1}/{opts.epoch_end} [train] {lr_str}",
             bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
             leave=False,
         )
@@ -179,4 +175,5 @@ if __name__ == "__main__":
             agent.save(epoch)
 
         # validate the new model
-        validate(0, tsp_problem, agent, opts.val_dataset, tb_logger, _id=epoch)
+        best_value, value_std = validate(0, tsp_problem, agent, opts.val_dataset, tb_logger, _id=epoch)
+        print(f"Epoch {epoch + 1}/{opts.epoch_end} [val] object value: {best_value:.4f} +- {value_std:.4f} ({lr_str})")
