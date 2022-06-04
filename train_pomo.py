@@ -142,7 +142,7 @@ def _train_one_batch(batch_data):
     return score_mean.item(), loss_mean.item()
 
 
-def generate_data(opts):
+def generate_data():
     data_seed = np.random.randint(1000000)
     t1 = time.time()
     data = generate_tsp_data(
@@ -150,7 +150,7 @@ def generate_data(opts):
         trainer_params["train_episodes"],
         env_params["problem_size"],
         distribution="clust",
-        seed=training_data_seed,
+        seed=data_seed,
         save=False,
         quiet=True,
     )
@@ -198,6 +198,11 @@ if __name__ == "__main__":
         start_epoch = model_load["epoch"] + 1
         scheduler.last_epoch = model_load["epoch"] - 1
 
+        # resume random state for date generation
+        # FIXME would be better to save and load random state
+        for i in range(start_epoch):
+            _data_seed = np.random.randint(1000000)
+
     model.to(device)
 
     end_epoch = trainer_params["epochs"]
@@ -211,7 +216,7 @@ if __name__ == "__main__":
 
         data, duration = generate_data()
         if epoch == start_epoch:
-            pbar.write(f"generated {trainer_params['train_episodes']} instances (time={human_readable_time(human_readable_time(duration))})")
+            pbar.write(f"generated {trainer_params['train_episodes']} instances (time={human_readable_time(duration)})")
 
         data = torch.tensor(data, dtype=torch.float)  # numpy ndarray's default dtype is double
 
