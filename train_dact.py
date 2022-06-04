@@ -160,10 +160,10 @@ if __name__ == "__main__":
 
         # start training
         step = epoch * (opts.epoch_size // opts.batch_size)
-        lr_str = "actor lr={:.3e}, critic lr={:.3e}".format(
+        lr_str = "lr: actor {:.3e}, critic {:.3e}".format(
             agent.optimizer.param_groups[0]["lr"], agent.optimizer.param_groups[1]["lr"]
         )
-        pbar.set_description(f"Epoch {epoch + 1}/{opts.epoch_end} [train] {lr_str}")
+        pbar.set_description(f"Epoch {epoch + 1}/{opts.epoch_end} [train] ({lr_str})")
         t1 = time.time()
 
         for batch_id, batch in enumerate(training_dataloader):
@@ -184,4 +184,4 @@ if __name__ == "__main__":
 
         # validate the new model
         best_value, value_std = validate(0, tsp_problem, agent, opts.val_dataset, tb_logger, _id=epoch)
-        print(f"Epoch {epoch + 1}/{opts.epoch_end} [val] object value: {best_value:.4f} +- {value_std:.4f} ({lr_str})")
+        print(f"Epoch {epoch + 1}/{opts.epoch_end} [val] obj value: {best_value:.4f} +- {value_std:.4f}, duration={duration} ({lr_str})")
