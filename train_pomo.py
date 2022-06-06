@@ -195,6 +195,11 @@ if __name__ == "__main__":
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         print(f"loaded {checkpoint_fullname}")
 
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(device)
+
         start_epoch = model_load["epoch"] + 1
         scheduler.last_epoch = model_load["epoch"] - 1
 
