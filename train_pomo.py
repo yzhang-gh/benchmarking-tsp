@@ -10,7 +10,7 @@ from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
 from torch.utils.tensorboard import SummaryWriter
 
-from generate_data import generate_tsp_data
+from generate_data import generate_data_jit
 from others import datetime_str, human_readable_time
 from solvers.pomo.TSP.POMO.TSPEnv import TSPEnv
 from solvers.pomo.TSP.POMO.TSPModel import TSPModel
@@ -45,6 +45,7 @@ optimizer_params = {
 }
 
 trainer_params = {
+    "data_type": "mix",
     "use_cuda": True,
     "cuda_device_num": 0,
     "epochs": 3100,
@@ -142,22 +143,6 @@ def _train_one_batch(batch_data):
     return score_mean.item(), loss_mean.item()
 
 
-def generate_data():
-    data_seed = np.random.randint(1000000)
-    t1 = time.time()
-    data = generate_tsp_data(
-        "pomo_tmpfiles",
-        trainer_params["train_episodes"],
-        env_params["problem_size"],
-        distribution="clust",
-        seed=data_seed,
-        save=False,
-        quiet=True,
-    )
-    t2 = time.time()
-    return data, t2 - t1
-
-
 if __name__ == "__main__":
     # cuda
     if trainer_params["use_cuda"]:
@@ -219,7 +204,14 @@ if __name__ == "__main__":
             leave=False,
         )
 
-        data, duration = generate_data()
+        data_seed = np.random.randint(1000000)
+        data, duration = generate_data_jit(
+            "/data0/zhangyu/pomo_tmpfiles",
+            trainer_params["train_episodes"],
+            env_params["problem_size"],
+            trainer_params["data_type"],
+            seed=data_seed,
+        )
         if epoch == start_epoch:
             pbar.write(f"generated {trainer_params['train_episodes']} instances (time={human_readable_time(duration)})")
 
