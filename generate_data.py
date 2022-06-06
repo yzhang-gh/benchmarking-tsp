@@ -1,6 +1,7 @@
 import argparse
 import os
 import subprocess
+import time
 
 import numpy as np
 
@@ -8,7 +9,17 @@ from utils.data_utils import generate_seed, save_dataset
 from utils.file_utils import load_tsplib_file
 
 
-def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mode="train", seed=None, num_clusts=None, save=True, quiet=False):
+def generate_tsp_data(
+    data_dir,
+    dataset_size,
+    graph_size,
+    distribution="rue",
+    mode="train",
+    seed=None,
+    num_clusts=None,
+    save=True,
+    quiet=False,
+):
     """
     mode: This is used to generate the default random seed if seed is not provided.
     """
@@ -67,6 +78,50 @@ def generate_tsp_data(data_dir, dataset_size, graph_size, distribution="rue", mo
         print(f"Saved to {os.path.join(data_dir, dataset_id)}.pkl")
 
     return dataset
+
+
+def generate_data_jit(
+    tmp_data_dir, dataset_size, graph_size, distribution="rue", seed=None, num_clusts=None
+):
+    assert distribution in ["rue", "clust", "mix"]
+    t1 = time.time()
+
+    if distribution == "mix":
+        assert dataset_size % 2 == 0
+        data1 = generate_tsp_data(
+            tmp_data_dir,
+            dataset_size // 2,
+            graph_size,
+            "rue",
+            seed,
+            save=False,
+            quiet=True,
+        )
+        data2 = generate_tsp_data(
+            tmp_data_dir,
+            dataset_size // 2,
+            graph_size,
+            "clust",
+            seed,
+            save=False,
+            quiet=True,
+        )
+        data = np.vstack([data1, data2])
+        np.random.shuffle(data)
+
+    else:
+        data = generate_tsp_data(
+            tmp_data_dir,
+            dataset_size,
+            graph_size,
+            distribution,
+            seed,
+            save=False,
+            quiet=True,
+        )
+
+    t2 = time.time()
+    return data, t2 - t1
 
 
 if __name__ == "__main__":
