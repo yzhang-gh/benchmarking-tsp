@@ -163,7 +163,7 @@ if __name__ == "__main__":
     optimizer = Optimizer(model.parameters(), **optimizer_params["optimizer"])
     scheduler = Scheduler(optimizer, **optimizer_params["scheduler"])
 
-    run_name = f"n{env_params['problem_size']}_{datetime_str()}"
+    run_name = f"n{env_params['problem_size']}_{trainer_params['data_type']}_{datetime_str()}"
     save_dir = os.path.join(save_dir, run_name)
     print("saved to", save_dir)
     writer = SummaryWriter(log_dir=save_dir)
