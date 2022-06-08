@@ -92,8 +92,8 @@ def generate_data_jit(
             tmp_data_dir,
             dataset_size // 2,
             graph_size,
-            "rue",
-            seed,
+            distribution="rue",
+            seed=seed,
             save=False,
             quiet=True,
         )
@@ -101,8 +101,8 @@ def generate_data_jit(
             tmp_data_dir,
             dataset_size // 2,
             graph_size,
-            "clust",
-            seed,
+            distribution="clust",
+            seed=seed,
             save=False,
             quiet=True,
         )
@@ -114,8 +114,8 @@ def generate_data_jit(
             tmp_data_dir,
             dataset_size,
             graph_size,
-            distribution,
-            seed,
+            distribution=distribution,
+            seed=seed,
             save=False,
             quiet=True,
         )
