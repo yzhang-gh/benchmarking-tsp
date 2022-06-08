@@ -16,8 +16,6 @@ from solvers.pomo.TSP.POMO.TSPEnv import TSPEnv
 from solvers.pomo.TSP.POMO.TSPModel import TSPModel
 from solvers.pomo.utils.utils import AverageMeter
 
-save_dir = "/data0/zhangyu/runs/pomo"
-
 env_params = {
     "problem_size": 100,
     "pomo_size": 100,
@@ -144,6 +142,14 @@ def _train_one_batch(batch_data):
 
 
 if __name__ == "__main__":
+    
+    dir_prefix = "/data/yzhang"
+    save_dir = "runs/pomo"
+    tmp_data_dir = "pomo_tmpfiles"
+    if len(dir_prefix) > 0:
+        save_dir = os.path.join(dir_prefix, save_dir)
+        tmp_data_dir = os.path.join(dir_prefix, tmp_data_dir)
+
     # cuda
     if trainer_params["use_cuda"]:
         cuda_device_num = trainer_params["cuda_device_num"]
@@ -206,7 +212,7 @@ if __name__ == "__main__":
 
         data_seed = np.random.randint(1000000)
         data, duration = generate_data_jit(
-            "/data0/zhangyu/pomo_tmpfiles",
+            tmp_data_dir,
             trainer_params["train_episodes"],
             env_params["problem_size"],
             trainer_params["data_type"],

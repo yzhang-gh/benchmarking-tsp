@@ -7,7 +7,7 @@ import torch
 import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from generate_data import generate_tsp_data
+from generate_data import generate_data_jit
 
 from others import datetime_str, human_readable_time
 from solvers.dact.agent.ppo import PPO, train_batch
@@ -15,28 +15,6 @@ from solvers.dact.options import get_options
 from solvers.dact.problems.problem_tsp import TSP, _TSPDataset
 from solvers.dact.utils.logger import log_to_tb_val
 from utils.data_utils import load_dataset
-
-graph_size = 100
-T_max = 1500
-num_data_aug = 1
-model_path = None
-val_dataset_path = "data/clust100_seed1005.pkl"
-
-
-def generate_data(opts):
-    data_seed = np.random.randint(1000000)
-    t1 = time.time()
-    data = generate_tsp_data(
-        "dact_tmpfiles",
-        opts.epoch_size,
-        opts.graph_size,
-        distribution="clust",
-        seed=data_seed,
-        save=False,
-        quiet=True,
-    )
-    t2 = time.time()
-    return data, t2 - t1
 
 
 def validate(rank, problem, agent, val_data_path, tb_logger, distributed=False, _id=None):
@@ -86,6 +64,13 @@ def validate(rank, problem, agent, val_data_path, tb_logger, distributed=False, 
 
 if __name__ == "__main__":
 
+    dir_prefix = "/data/yzhang"
+    save_dir = "runs/dact"
+    tmp_data_dir = "dact_tmpfiles"
+    if len(dir_prefix) > 0:
+        save_dir = os.path.join(dir_prefix, save_dir)
+        tmp_data_dir = os.path.join(dir_prefix, tmp_data_dir)
+
     seed = 1234
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -100,12 +85,15 @@ if __name__ == "__main__":
 
     opts.seed = seed
 
-    opts.graph_size = graph_size
-    opts.T_max = T_max
-    opts.val_m = num_data_aug
-    opts.val_dataset = val_dataset_path
-    opts.max_grad_norm = 0.2
+    opts.graph_size = 100
+    opts.val_dataset = "data/clust100_seed1005.pkl"
+    opts.max_grad_norm = 0.1
     opts.Xi_CL = 2
+    opts.checkpoint_epochs = 10
+    opts.batch_size = 500
+    opts.data_type = "clust"
+    # opts.resume = True
+    # opts.load_path = "runs/dact/n100_20220604_095550/epoch-100.pt"
 
     tsp_problem = TSP(
         p_size=opts.graph_size,
@@ -120,15 +108,15 @@ if __name__ == "__main__":
         agent.load(opts.load_path)
 
     if opts.resume:
-        epoch_resume = int(os.path.splitext(os.path.split(opts.resume)[-1])[0].split("-")[1])
-        print("Resuming after {}".format(epoch_resume))
+        epoch_resume = int(os.path.basename(opts.load_path).split("-")[1].split(".")[0])
         agent.opts.epoch_start = epoch_resume + 1
+        print(f"loaded {opts.load_path}")
 
-    save_dir = "runs/dact"
-    run_name = f"n{opts.graph_size}_{datetime_str()}"
+    run_name = f"n{opts.graph_size}_{opts.data_type}_{datetime_str()}"
     save_dir = os.path.join(save_dir, run_name)
-    print("saved to", save_dir)
+    opts.run_name = run_name
     opts.save_dir = save_dir
+    print("saved to", save_dir)
     tb_logger = SummaryWriter(log_dir=save_dir)
     with open(os.path.join(save_dir, "opts.json"), "w") as w:
         w.write(json.dumps(vars(opts), indent=4))
@@ -147,11 +135,17 @@ if __name__ == "__main__":
             leave=False,
         )
 
-        data, duration = generate_data(opts)
+        data_seed = np.random.randint(1000000)
+        data, duration = generate_data_jit(
+            tmp_data_dir,
+            opts.epoch_size,
+            opts.graph_size,
+            opts.data_type,
+            seed=data_seed,
+        )
         if epoch == opts.epoch_start:
             pbar.write(f"generated {opts.epoch_size} instances (time={human_readable_time(duration)})")
 
-        # training_dataset = tsp_problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size)
         training_dataset = _TSPDataset(data)
         # prepare training data
         training_dataloader = DataLoader(
