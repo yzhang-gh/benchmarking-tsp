@@ -1,14 +1,22 @@
+## Install
 
-## Environment
+```bash
+git clone https://github.com/yzhang-gh/benchmarking-tsp.git
+cd benchmarking-tsp
+# clone neural solvers
+git submodule update --init --recursive
+```
+
+### Environment
 
 Python 3.8
 
 ```bash
 conda install pytorch==1.7.1 torchvision==0.8.2 cudatoolkit=10.1 -c pytorch
-conda install tqdm
+conda install tqdm tensorboard
 
-# === DACT specific ===
-pip install opencv-python tensorboard_logger
+# === POMO specific ===
+conda install pytz
 
 # === NeuroLKH specific ===
 conda install scikit-learn cython swig
@@ -27,12 +35,6 @@ R
 > Sys.setenv(TAR = "/bin/tar")
 > devtools::install_github("jakobbossek/netgen")
 > q()  # quit
-
-# Training
-conda install tensorboard
-
-# === POMO specific ===
-conda install pytz
 ```
 
 ## Data Organization and Naming
