@@ -1,7 +1,10 @@
 from others import DotDict
+from solvers.dact.options import get_options
 
 
 def get_pomo_solver_options(graph_size, model_path, epoch, num_data_aug=1):
+    """https://github.com/yd-kwon/POMO/blob/835c8c06248ade886856f7f5d207fca3f6c63575/NEW_py_ver/TSP/POMO/test_n100.py"""
+
     env_params = {
         "problem_size": graph_size,
         "pomo_size": graph_size,
@@ -39,67 +42,19 @@ def get_pomo_solver_options(graph_size, model_path, epoch, num_data_aug=1):
 
 
 def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
-    opts = DotDict(
-        {
-            ## Overall settings
-            "problem": "tsp",
-            "graph_size": graph_size,
-            "dummy_rate": 0.5,
-            "step_method": "2_opt",
-            "init_val_met": "random",
-            "no_cuda": False,
-            "no_tb": True,
-            "show_figs": False,
-            "no_saving": True,
-            "use_assert": False,
-            "no_DDP": True,
-            ## DACT parameters
-            "v_range": 6.0,
-            "DACTencoder_head_num": 4,
-            "DACTdecoder_head_num": 4,
-            "critic_head_num": 6,
-            "embedding_dim": 64,
-            "hidden_dim": 64,
-            "n_encode_layers": 3,
-            "normalization": "layer",
-            ## Training parameters
-            "RL_agent": "ppo",
-            "gamma": 0.999,
-            "K_epochs": 3,
-            "eps_clip": 0.1,
-            "T_train": 200,
-            "n_step": 4,
-            "best_cl": False,
-            "Xi_CL": 0.25,
-            "batch_size": 600,
-            "epoch_end": 200,
-            "epoch_size": 12000,
-            "lr_model": 0.0001,
-            "lr_critic": 3e-05,
-            "lr_decay": 0.985,
-            "max_grad_norm": 0.04,
-            ## Inference and validation parameters
-            "T_max": T_max,
-            "eval_only": True,
-            # "val_size": 10000,
-            # "val_dataset": "./datasets/tsp_100_10000.pkl",
-            "val_m": num_data_aug,
-            ## Resume and load models
-            "load_path": model_path,
-            "resume": None,
-            "epoch_start": 0,
-            ## Logs/output settings
-            "no_progress_bar": False,
-            "log_dir": "logs",
-            "log_step": 50,
-            "output_dir": "outputs",
-            "run_name": "run_name",
-            "checkpoint_epochs": 1,
-        }
-    )
-    opts.device = "cuda"
-    opts.use_cuda = True
+    opts = get_options("")
+
+    opts.no_tb = True
+    opts.no_saving = True
+    opts.no_DDP = True
+    opts.eval_only = True
     opts.P = 250
+
+    opts.graph_size = graph_size
+    opts.load_path = model_path
+    opts.val_m = num_data_aug
+    opts.T_max = T_max
+
     return opts
 
 
