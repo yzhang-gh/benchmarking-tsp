@@ -77,9 +77,9 @@ if __name__ == "__main__":
 
             solver = solver_class(opts)
 
-            seeds = [1, 2, 3]
+            seeds = np.random.randint(1000000, size=10)
             if solver_name == "POMO":
-                seeds = [1]
+                seeds = seeds[:1]
 
             for seed in seeds:
 
@@ -88,10 +88,10 @@ if __name__ == "__main__":
 
                 t_start = time.time()
 
-                tours, scores, time_fix = solver.solve(rue_problems, seed)
+                tours, scores = solver.solve(rue_problems, seed)
 
                 t_end = time.time()
-                duration = t_end - t_start - time_fix
+                duration = t_end - t_start
                 duration = human_readable_time(duration)
 
                 tours = tours.to("cpu")
@@ -103,5 +103,5 @@ if __name__ == "__main__":
                     scores = scores.to("cpu")
                     reported_len = scores.mean().item()
 
-                print(info(f"{seed=}, {reported_len=:.6f}, {len=:.6f}, {duration=!s} (+{time_fix:.2f}s)"))
+                print(info(f"{seed=}, {reported_len=:.6f}, {len=:.6f}, {duration=!s}"))
                 # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()

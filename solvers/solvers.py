@@ -68,7 +68,7 @@ class PomoSolver(BaseSovler):
 
             num_solved += batch_size
 
-        return torch.vstack(tours), torch.vstack(scores), 0
+        return torch.vstack(tours), torch.vstack(scores)
 
     def _solve_batch(self, problems):
         """see pomo/TSP/TSPTester.py:_test_one_batch"""
@@ -127,12 +127,6 @@ class DactSolver(BaseSovler):
     def __init__(self, opts):
         self.opts = opts
 
-    def solve(self, problems, seed=1234):
-        t1 = time.time()
-
-        opts = self.opts
-        opts.seed = seed
-
         self.tsp_problem = TSP(
             p_size=opts.graph_size,
             step_method=opts.step_method,
@@ -148,16 +142,14 @@ class DactSolver(BaseSovler):
         self.agent.eval()
         self.tsp_problem.eval()
 
-        t2 = time.time()
-        env_init_duration = t2 - t1
-
+    def solve(self, problems, seed=None):
         batch = {"coordinates": problems}
 
         best_value, cost_hist, best_hist, r, rec_history, best_sol = self.agent.rollout(
-            self.tsp_problem, opts.val_m, batch, do_sample=True, show_bar=True
+            self.tsp_problem, self.opts.val_m, batch, do_sample=True, show_bar=True
         )
 
-        return best_sol, best_value, env_init_duration
+        return best_sol, best_value
 
 
 class NlkhSolver(BaseSovler):
@@ -242,4 +234,4 @@ class NlkhSolver(BaseSovler):
         sgn_infer_duration = t3 - t2
         read_tour_duration = t5 - t4  ## <<1s
 
-        return torch.tensor(tours, dtype=torch.long), None, read_tour_duration
+        return torch.tensor(tours, dtype=torch.long), None
