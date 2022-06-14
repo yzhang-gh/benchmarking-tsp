@@ -155,7 +155,7 @@ def write_tsplib(filename, loc, name="problem"):
     os.makedirs(file_dir, exist_ok=True)
 
     ## TSPLIB does not take floats
-    loc = upscale_tsp_coords(loc)
+    int_loc = upscale_tsp_coords(loc)
 
     with open(filename, 'w') as f:
         f.write("\n".join([

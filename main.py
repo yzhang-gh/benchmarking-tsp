@@ -92,6 +92,7 @@ if __name__ == "__main__":
             if solver_name == "POMO":
                 seeds = seeds[:1]
 
+            gaps_multi_runs = []
             for seed in seeds:
 
                 np.random.seed(seed)
@@ -159,9 +160,19 @@ if __name__ == "__main__":
                     gap = (v2[1] - v1) / v1
                     gaps.append(gap)
                 gaps = np.array(gaps)
+                gaps_multi_runs.append(gaps)
 
                 print(
                     info(
-                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={gaps.mean():.5%}, std={gaps.std():.5%}, {duration=!s}"
+                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={gaps.mean():.5%}, {duration=!s}"
+                    )
+                )
+
+            gaps_multi_runs = np.stack(gaps_multi_runs)
+            print(gaps_multi_runs.shape)
+            print(gaps_multi_runs.std(axis=0).shape)
+            print(
+                info(
+                    f"gaps_multi_runs={gaps.mean():.5%}, std={gaps_multi_runs.std(axis=0).mean()}"
                     )
                 )
