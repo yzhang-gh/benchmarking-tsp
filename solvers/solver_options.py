@@ -48,13 +48,18 @@ def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
     opts.no_saving = True
     opts.no_DDP = True
     opts.eval_only = True
+
+    opts.distributed = False
+    opts.use_cuda = True
     opts.P = 250
+    opts.device = "cuda"
 
     opts.graph_size = graph_size
     opts.load_path = model_path
     opts.val_m = num_data_aug
     opts.T_max = T_max
 
+    opts = DotDict(vars(opts))
     return opts
 
 

@@ -45,7 +45,7 @@ class PomoSolver(BaseSovler):
 
         # Restore
         model_load = self.tester_params["model_load"]
-        checkpoint_fullname = "{path}/checkpoint-{epoch}.pt".format(**model_load)
+        checkpoint_fullname = "{path}/epoch-{epoch}.pt".format(**model_load)
         checkpoint = torch.load(checkpoint_fullname, map_location=device)
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.to(device)
@@ -143,6 +143,7 @@ class DactSolver(BaseSovler):
         self.tsp_problem.eval()
 
     def solve(self, problems, seed=None):
+        problems = problems.to(self.opts.device)
         batch = {"coordinates": problems}
 
         best_value, cost_hist, best_hist, r, rec_history, best_sol = self.agent.rollout(
