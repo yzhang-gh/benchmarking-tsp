@@ -14,6 +14,7 @@ from utils.file_utils import load_tsplib_file
 Testset_Size = 10000
 Graph_Size = 100
 Distribution = "rue"
+Num_Runs = 3
 
 
 def get_costs(problems, tours):
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     dataset_id = f"{Distribution}{Graph_Size}"
     testfile_name = os.path.join(data_dir, dataset_id)
 
-    result_dir = "test_results_" + datetime_str()
+    result_dir = "test_results_" + datetime_str()[:-4]
 
     # EUC 2D TSP problems
     problems = load_dataset(testfile_name)
@@ -88,11 +89,12 @@ if __name__ == "__main__":
 
             solver = solver_class(opts)
 
-            seeds = np.random.randint(1000000, size=10)
+            seeds = np.random.randint(1000000, size=Num_Runs)
             if solver_name == "POMO":
                 seeds = seeds[:1]
 
             gaps_multi_runs = []
+            duration_multi_runs = []
             for seed in seeds:
 
                 np.random.seed(seed)
@@ -104,6 +106,7 @@ if __name__ == "__main__":
 
                 t_end = time.time()
                 duration = t_end - t_start
+                duration_multi_runs.append(duration)
                 duration = human_readable_time(duration)
 
                 tours = tours.to("cpu")
@@ -169,10 +172,14 @@ if __name__ == "__main__":
                 )
 
             gaps_multi_runs = np.stack(gaps_multi_runs)
-            print(gaps_multi_runs.shape)
-            print(gaps_multi_runs.std(axis=0).shape)
             print(
                 info(
-                    f"gaps_multi_runs={gaps.mean():.5%}, std={gaps_multi_runs.std(axis=0).mean()}"
+                    f"gaps_multi_runs={gaps.mean():.5%}, std={gaps_multi_runs.std(axis=0).mean():.5%}, "
+                    + f"avg duration={np.mean(duration_multi_runs):.4f}s"
                     )
+            )
+
+            np.savetxt(
+                os.path.join(result_dir, f"{solver_name}/{dataset_id}_opts_{i_opts}_multi_run_gaps.txt"),
+                gaps_multi_runs,
                 )
