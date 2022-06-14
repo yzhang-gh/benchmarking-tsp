@@ -5,12 +5,13 @@ import time
 import numpy as np
 import torch
 
-from others import DotDict, bold, human_readable_time, info
+from others import DotDict, bold, datetime_str, human_readable_time, info
 from solvers.solver_options import get_dact_solver_options, get_nlkh_solver_options, get_pomo_solver_options
 from solvers.solvers import DactSolver, NlkhSolver, PomoSolver
 from utils.data_utils import load_dataset
+from utils.file_utils import load_tsplib_file
 
-Testset_Size = 100
+Testset_Size = 10000
 Graph_Size = 100
 
 
@@ -29,6 +30,13 @@ def get_costs(problems, tours):
     return tour_lens
 
 
+def calc_tsp_int_length(int_coords, tour):
+    assert len(np.unique(tour)) == len(tour), "Tour cannot contain duplicates"
+    assert len(tour) == len(int_coords)
+    sorted_locs = np.array(int_coords)[np.concatenate((tour, [tour[0]]))]
+    return int(np.round(np.linalg.norm(sorted_locs[1:] - sorted_locs[:-1], axis=-1)).sum())
+
+
 if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -38,7 +46,7 @@ if __name__ == "__main__":
     dataset_id = f"{distribution}{Graph_Size}"
     testfile_name = os.path.join(data_dir, dataset_id)
 
-    result_dir = "test_results"
+    result_dir = "test_results_" + datetime_str()
 
     # EUC 2D TSP problems
     problems = load_dataset(testfile_name)
@@ -49,7 +57,7 @@ if __name__ == "__main__":
 
     pomo_options_list = [
         get_pomo_solver_options(Graph_Size, "/data0/zhangyu/runs/pomo/n50_clust_20220608_231808", 800, 1),
-        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/saved_tsp100_model2_longTrain", 3100, 8),
+        get_pomo_solver_options(Graph_Size, "/data0/zhangyu/runs/pomo/n50_clust_20220608_231808", 800, 8),
     ]
 
     dact_options_list = [
@@ -69,7 +77,7 @@ if __name__ == "__main__":
 
         print(bold(f"== {solver_name} =="))
 
-        for opts in opts_list:
+        for i_opts, opts in enumerate(opts_list):
 
             if solver_name == "POMO":
                 print(f"data_augmentation={opts[2]['aug_factor']}")
@@ -99,17 +107,26 @@ if __name__ == "__main__":
 
                 tours = tours.to("cpu")
                 costs = get_costs(problems, tours)
-                len = costs.mean().item()
+                tour_len = costs.mean().item()
 
                 reported_len = -1
                 if scores is not None:
                     scores = scores.to("cpu")
                     reported_len = scores.mean().item()
 
-                print(info(f"{seed=}, {reported_len=:.6f}, {len=:.6f}, {duration=!s}"))
+                # print(info(f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, {duration=!s}"))
                 # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()
 
-                run_name = f"{solver_name}/{dataset_id}/seed{seed}"
+                # integer length
+                num_digits = len(str(len(problems) - 1))
+                lens = {}
+                for i_tsp, (tour, float_len) in enumerate(zip(tours, costs.tolist())):
+                    f = os.path.join(data_dir, dataset_id, f"{i_tsp:0{num_digits}d}.tsp")
+                    coords = load_tsplib_file(f)
+                    int_len = calc_tsp_int_length(coords, tour)
+                    lens[f] = [float_len, int_len]
+
+                run_name = f"{solver_name}/{dataset_id}_opts_{i_opts}/seed{seed}"
                 save_dir = os.path.join(result_dir, run_name)
                 os.makedirs(save_dir, exist_ok=True)
 
@@ -126,3 +143,24 @@ if __name__ == "__main__":
                             indent=4,
                         )
                     )
+                with open(os.path.join(save_dir, "tour_lens.json"), "w") as w:
+                    w.write(json.dumps(lens, indent=4))
+
+                # optimity gap
+                data_type = "cluster" if distribution == "clust" else "rue"
+                optim_sol_file = f"../optim_sol/testing_set_optimum_{data_type}_{Graph_Size}.json"
+                with open(optim_sol_file) as r:
+                    optim_sol = json.loads(r.read())
+                gaps = []
+                for (k1, v1), (k2, v2) in zip(optim_sol.items(), lens.items()):
+                    assert k1.split("/")[-1] == k2.split("/")[-1]
+                    v1 = int(v1)
+                    assert v1 <= v2[1]
+                    gap = (v2[1] - v1) / v1
+                    gaps.append(gap)
+
+                print(
+                    info(
+                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={sum(gaps) / len(gaps):.5%}, {duration=!s}"
+                    )
+                )

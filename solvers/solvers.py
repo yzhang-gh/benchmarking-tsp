@@ -61,7 +61,7 @@ class PomoSolver(BaseSovler):
             remaining = num_problems - num_solved
             batch_size = min(self.tester_params["test_batch_size"], remaining)
 
-            tours_batch, scores_batch, _, _ = self._solve_batch(problems[num_solved : num_solved + batch_size])
+            tours_batch, scores_batch = self._solve_batch(problems[num_solved : num_solved + batch_size])
             # shape: (batch, tour_len), scalar
             tours.append(tours_batch)
             scores.append(scores_batch)
@@ -100,13 +100,13 @@ class PomoSolver(BaseSovler):
         tours = self.env.selected_node_list.reshape(aug_factor, batch_size, self.env.pomo_size, num_cities)
         # shape: (augmentation, batch, pomo, tour_len)
 
-        no_aug_reward = reward[0]
-        # shape: (batch, pomo)
-        max_pomo_reward, max_pomo_indices = no_aug_reward.max(dim=1)
-        # shape: (batch,), (batch,)
-        no_aug_scores = -max_pomo_reward  # negative sign to make positive value
-        no_aug_tours = tours[0][torch.arange(batch_size), max_pomo_indices]  # NOTE advanced indexing
-        # shape: (batch, tour_len)
+        # no_aug_reward = reward[0]
+        # # shape: (batch, pomo)
+        # max_pomo_reward, max_pomo_indices = no_aug_reward.max(dim=1)
+        # # shape: (batch,), (batch,)
+        # no_aug_scores = -max_pomo_reward  # negative sign to make positive value
+        # no_aug_tours = tours[0][torch.arange(batch_size), max_pomo_indices]  # NOTE advanced indexing
+        # # shape: (batch, tour_len)
 
         max_pomo_reward, max_pomo_indices = reward.max(dim=2)  # get best results from pomo
         # shape: (augmentation, batch), (augmentation, batch)
@@ -118,7 +118,7 @@ class PomoSolver(BaseSovler):
         aug_tours = aug_tours[max_aug_indices, torch.arange(batch_size)]
         # shape: (batch, tour_len)
 
-        return no_aug_tours, no_aug_scores, aug_tours, aug_scores
+        return aug_tours, aug_scores
 
 
 class DactSolver(BaseSovler):
