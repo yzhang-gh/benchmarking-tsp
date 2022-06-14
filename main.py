@@ -13,6 +13,7 @@ from utils.file_utils import load_tsplib_file
 
 Testset_Size = 10000
 Graph_Size = 100
+Distribution = "rue"
 
 
 def get_costs(problems, tours):
@@ -42,8 +43,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = False
 
     data_dir = "../test_data"
-    distribution = "clust"
-    dataset_id = f"{distribution}{Graph_Size}"
+    dataset_id = f"{Distribution}{Graph_Size}"
     testfile_name = os.path.join(data_dir, dataset_id)
 
     result_dir = "test_results_" + datetime_str()
@@ -147,7 +147,7 @@ if __name__ == "__main__":
                     w.write(json.dumps(lens, indent=4))
 
                 # optimity gap
-                data_type = "cluster" if distribution == "clust" else "rue"
+                data_type = "cluster" if Distribution == "clust" else "rue"
                 optim_sol_file = f"../optim_sol/testing_set_optimum_{data_type}_{Graph_Size}.json"
                 with open(optim_sol_file) as r:
                     optim_sol = json.loads(r.read())
@@ -158,9 +158,10 @@ if __name__ == "__main__":
                     assert v1 <= v2[1]
                     gap = (v2[1] - v1) / v1
                     gaps.append(gap)
+                gaps = np.array(gaps)
 
                 print(
                     info(
-                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={sum(gaps) / len(gaps):.5%}, {duration=!s}"
+                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={gaps.mean():.5%}, std={gaps.std():.5%}, {duration=!s}"
                     )
                 )
