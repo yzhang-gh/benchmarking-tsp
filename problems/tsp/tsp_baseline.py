@@ -1,5 +1,4 @@
 import argparse
-from math import ceil
 import numpy as np
 import os
 import time
@@ -8,7 +7,7 @@ from scipy.spatial import distance_matrix
 from utils import run_all_in_pool
 from utils.data_utils import check_extension, load_dataset, save_dataset, upscale_tsp_coords
 from subprocess import check_call, check_output, CalledProcessError
-from problems.vrp.vrp_baseline import get_lkh_executable
+# from problems.vrp.vrp_baseline import get_lkh_executable
 import torch
 from tqdm import tqdm
 import re
@@ -443,12 +442,12 @@ if __name__ == "__main__":
                 def run_func(args):
                     return solve_concorde_log(executable, *args, disable_cache=opts.disable_cache)
 
-            elif method == "lkh":
-                use_multiprocessing = False
-                executable = get_lkh_executable()
+            # elif method == "lkh":
+            #     use_multiprocessing = False
+            #     executable = get_lkh_executable()
 
-                def run_func(args):
-                    return solve_lkh_log(executable, *args, runs=runs, disable_cache=opts.disable_cache)
+            #     def run_func(args):
+            #         return solve_lkh_log(executable, *args, runs=runs, disable_cache=opts.disable_cache)
 
             elif method[:6] == "gurobi":
                 use_multiprocessing = True  # We run one thread per instance

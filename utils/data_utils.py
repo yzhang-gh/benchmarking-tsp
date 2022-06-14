@@ -31,15 +31,18 @@ Possible_Distributions = ["rue", "clust"]
 
 
 def upscale_tsp_coords(coords):
-    """[0, 1) to {1, 2, ..., 1000000}"""
-    int_coords = np.ceil(coords * 1000000)
-    int_coords[int_coords == 0] = 1
-    int_coords.astype(int)
+    """[0, 1) to {1, 2, ..., 1000000}
+    This assumes [0, 1) has already been discretized to {0, 0.000001, ..., 0.999998, 0.999999}
+    """
+    int_coords = np.round(coords * 1000000) + 1
+    int_coords = int_coords.astype(int)
     return int_coords
 
 
 def downscale_tsp_coords(coords):
-    """{1, 2, ..., 1000000} to [0, 1)"""
+    """{1, 2, ..., 1000000} to [0, 1)
+    In fact, {0, 0.000001, ..., 0.999998, 0.999999}
+    """
     coords = (coords - 1) / 1000000
     return coords
 
