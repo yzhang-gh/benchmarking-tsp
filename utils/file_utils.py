@@ -1,6 +1,8 @@
-import numpy as np
 import re
-import os
+
+import numpy as np
+
+from utils.data_utils import downscale_tsp_coords
 
 ## <integer> <real> <real>
 Regex_Node_Coord_Line = re.compile(r"(\d+)[\t ]([\d\.e\-\+]+)[\t ]([\d\.e\-\+]+)")
@@ -18,6 +20,6 @@ def load_tsplib_file(data_file, normalize=False):
     nodes_coord = np.array(nodes_coord)
 
     if normalize:
-        nodes_coord = (nodes_coord - 1) / 1000000
+        nodes_coord = downscale_tsp_coords(nodes_coord)
 
     return nodes_coord

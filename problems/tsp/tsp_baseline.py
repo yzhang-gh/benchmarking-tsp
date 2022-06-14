@@ -6,7 +6,7 @@ import time
 from datetime import timedelta
 from scipy.spatial import distance_matrix
 from utils import run_all_in_pool
-from utils.data_utils import check_extension, load_dataset, save_dataset
+from utils.data_utils import check_extension, load_dataset, save_dataset, upscale_tsp_coords
 from subprocess import check_call, check_output, CalledProcessError
 from problems.vrp.vrp_baseline import get_lkh_executable
 import torch
@@ -155,9 +155,7 @@ def write_tsplib(filename, loc, name="problem"):
     os.makedirs(file_dir, exist_ok=True)
 
     ## TSPLIB does not take floats
-    ## [0, 1) to {1, 2, ..., 1000000}
-    int_loc = np.ceil(loc * 1000000)
-    int_loc[int_loc == 0] = 1
+    loc = upscale_tsp_coords(loc)
 
     with open(filename, 'w') as f:
         f.write("\n".join([

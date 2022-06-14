@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-from utils.data_utils import generate_seed, save_dataset
+from utils.data_utils import downscale_tsp_coords, generate_seed, save_dataset, upscale_tsp_coords
 from utils.file_utils import load_tsplib_file
 
 
@@ -35,10 +35,8 @@ def generate_tsp_data(
 
     if distribution == "rue":
         dataset = np.random.uniform(size=(dataset_size, graph_size, 2))
-
-        ## TSPLib {1, 2, ..., 1000000}, will rescale later
-        dataset = np.ceil(dataset * 1000000)
-        dataset[dataset == 0] = 1
+        ## for consistency, upscale to TSPLib range {1, 2, ..., 1000000} first, will normalize later
+        dataset = upscale_tsp_coords(dataset)
 
     elif distribution == "clust":
         if not num_clusts:
@@ -71,7 +69,7 @@ def generate_tsp_data(
         dataset = np.stack(tsp_instances)
 
     ## rescale, from {1, 2, ..., 1000000} to [0, 1)
-    dataset = (dataset - 1) / 1000000
+    dataset = downscale_tsp_coords(dataset)
 
     if save:
         save_dataset(dataset, os.path.join(data_dir, dataset_id))

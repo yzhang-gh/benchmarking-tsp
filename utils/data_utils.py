@@ -1,6 +1,8 @@
 import os
 import pickle
 
+import numpy as np
+
 
 def check_extension(filename):
     if os.path.splitext(filename)[1] != ".pkl":
@@ -26,6 +28,20 @@ def load_dataset(filename):
 
 
 Possible_Distributions = ["rue", "clust"]
+
+
+def upscale_tsp_coords(coords):
+    """[0, 1) to {1, 2, ..., 1000000}"""
+    int_coords = np.ceil(coords * 1000000)
+    int_coords[int_coords == 0] = 1
+    int_coords.astype(int)
+    return int_coords
+
+
+def downscale_tsp_coords(coords):
+    """{1, 2, ..., 1000000} to [0, 1)"""
+    coords = (coords - 1) / 1000000
+    return coords
 
 
 def generate_seed(graph_size, distribution, mode="train"):
