@@ -41,7 +41,7 @@ def get_pomo_solver_options(graph_size, model_path, epoch, num_data_aug=1):
     return env_params, model_params, tester_params
 
 
-def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
+def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500, test_batch_size=10000):
     opts = get_options("")
 
     opts.no_tb = True
@@ -58,6 +58,7 @@ def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500):
     opts.load_path = model_path
     opts.val_m = num_data_aug
     opts.T_max = T_max
+    opts.test_batch_size = test_batch_size
 
     opts = DotDict(vars(opts))
     return opts

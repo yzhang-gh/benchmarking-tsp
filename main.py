@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
             solver = solver_class(opts)
 
-            seeds = np.random.randint(1000000, size=Num_Runs)
+            seeds = np.random.randint(1000000, size=Num_Runs).tolist()
             if solver_name == "POMO":
                 seeds = seeds[:1]
 

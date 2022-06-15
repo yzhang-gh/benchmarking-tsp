@@ -6,11 +6,12 @@ import time
 import numpy as np
 import torch
 import tqdm
+from torch.utils.data import DataLoader
 
 from others import datetime_str
 from problems.tsp.tsp_baseline import read_tsplib
 from .dact.agent.ppo import PPO
-from .dact.problems.problem_tsp import TSP
+from .dact.problems.problem_tsp import TSP, _TSPDataset
 from .nlkh._swig_test import generate_feat, infer_SGN, method_wrapper
 from .nlkh.net.sgcn_model import SparseGCNModel
 from .pomo.TSP.POMO.TSPEnv import TSPEnv
@@ -143,14 +144,22 @@ class DactSolver(BaseSovler):
         self.tsp_problem.eval()
 
     def solve(self, problems, seed=None):
-        problems = problems.to(self.opts.device)
-        batch = {"coordinates": problems}
-
-        best_value, cost_hist, best_hist, r, rec_history, best_sol = self.agent.rollout(
-            self.tsp_problem, self.opts.val_m, batch, do_sample=True, show_bar=True
+        test_dataset = _TSPDataset(problems)
+        # prepare test data
+        test_dataloader = DataLoader(
+            test_dataset, batch_size=self.opts.test_batch_size, shuffle=False, num_workers=0, pin_memory=True
         )
 
-        return best_sol, best_value
+        tours = []
+        values = []
+        for batch in test_dataloader:
+            best_value, cost_hist, best_hist, r, rec_history, best_sol = self.agent.rollout(
+                self.tsp_problem, self.opts.val_m, batch, do_sample=True, show_bar=True
+            )
+            tours.append(best_sol)
+            values.append(best_value)
+
+        return torch.vstack(tours), torch.vstack(values)
 
 
 class NlkhSolver(BaseSovler):
