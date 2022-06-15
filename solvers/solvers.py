@@ -159,7 +159,7 @@ class DactSolver(BaseSovler):
             tours.append(best_sol)
             values.append(best_value)
 
-        return torch.vstack(tours), torch.vstack(values)
+        return torch.vstack(tours), torch.cat(values)
 
 
 class NlkhSolver(BaseSovler):

@@ -14,7 +14,7 @@ from utils.file_utils import load_tsplib_file
 Testset_Size = 10000
 Graph_Size = 100
 Distribution = "rue"
-Num_Runs = 3
+Num_Runs = 10
 
 
 def get_costs(problems, tours):
@@ -176,10 +176,10 @@ if __name__ == "__main__":
                 info(
                     f"gaps_multi_runs={gaps.mean():.5%}, std={gaps_multi_runs.std(axis=0).mean():.5%}, "
                     + f"avg duration={np.mean(duration_multi_runs):.4f}s"
-                    )
+                )
             )
 
             np.savetxt(
                 os.path.join(result_dir, f"{solver_name}/{dataset_id}_opts_{i_opts}_multi_run_gaps.txt"),
                 gaps_multi_runs,
-                )
+            )
