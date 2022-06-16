@@ -3,4 +3,4 @@ data*/*
 pretrained/*
 *tmpfiles/
 runs/
-test_results*
+test*

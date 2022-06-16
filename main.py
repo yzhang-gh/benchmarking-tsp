@@ -13,7 +13,7 @@ from utils.file_utils import load_tsplib_file
 
 Testset_Size = 10000
 Graph_Size = 100
-Distribution = "rue"
+Test_Distribution = "rue"
 Num_Runs = 10
 
 
@@ -44,10 +44,11 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = False
 
     data_dir = "../test_data"
-    dataset_id = f"{Distribution}{Graph_Size}"
+    dataset_id = f"{Test_Distribution}{Graph_Size}"
     testfile_name = os.path.join(data_dir, dataset_id)
 
-    result_dir = "test_results_" + datetime_str()[:-4]
+    result_dir = f"test_{datetime_str()}_n{Graph_Size}_{Test_Distribution}"
+    print(f"saved to {result_dir}")
 
     # EUC 2D TSP problems
     problems = load_dataset(testfile_name)
@@ -81,11 +82,11 @@ if __name__ == "__main__":
         for i_opts, opts in enumerate(opts_list):
 
             if solver_name == "POMO":
-                print(f"data_augmentation={opts[2]['aug_factor']}")
+                print(f"data_augmentation={opts[2]['aug_factor']}, model={opts[2]['model_load']['path']}")
             elif solver_name == "DACT":
-                print(f"data_augmentation={opts['val_m']}, max_steps={opts['T_max']}")
+                print(f"data_augmentation={opts.val_m}, max_steps={opts.T_max}, model={opts.load_path}")
             elif solver_name == "NeuroLKH":
-                print(f"max_trials={opts['max_trials']}")
+                print(f"max_trials={opts.max_trials}, model={opts.model_path}")
 
             solver = solver_class(opts)
 
@@ -151,7 +152,7 @@ if __name__ == "__main__":
                     w.write(json.dumps(lens, indent=4))
 
                 # optimity gap
-                data_type = "cluster" if Distribution == "clust" else "rue"
+                data_type = "cluster" if Test_Distribution == "clust" else "rue"
                 optim_sol_file = f"../optim_sol/testing_set_optimum_{data_type}_{Graph_Size}.json"
                 with open(optim_sol_file) as r:
                     optim_sol = json.loads(r.read())

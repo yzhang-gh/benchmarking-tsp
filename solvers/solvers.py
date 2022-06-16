@@ -183,7 +183,20 @@ class NlkhSolver(BaseSovler):
         t1 = time.time()
 
         ## feature generation
-        feats = [generate_feat(problem, graph_size, seed) for problem in problems]
+        # feats = [generate_feat(problem, graph_size, seed) for problem in problems]
+        with Pool(opts.parallelism) as pool:
+            feats = list(
+                tqdm.tqdm(
+                    pool.imap(
+                        method_wrapper,
+                        [("FeatGen", problem, graph_size, seed) for problem in problems],
+                    ),
+                    desc="FeatGen",
+                    total=data_size,
+                    bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
+                    leave=False,
+                )
+            )
         feats = list(zip(*feats))
         edge_index, edge_feat, inverse_edge_index, feat_runtime = feats
         feat_runtime = np.sum(feat_runtime)
@@ -228,6 +241,7 @@ class NlkhSolver(BaseSovler):
                             for i in range(data_size)
                         ],
                     ),
+                    desc="NeuroLKH",
                     total=data_size,
                     bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
                     leave=False,
@@ -243,5 +257,7 @@ class NlkhSolver(BaseSovler):
         feat_duration = t2 - t1       ## ~1s for 1000 test instances
         sgn_infer_duration = t3 - t2
         read_tour_duration = t5 - t4  ## <<1s
+
+        print(f"{t2 - t1:.2f}s + {t3 - t2:.2f}s + {t4 - t3:.2f}s + {t5 - t4:.2f}s")
 
         return torch.tensor(tours, dtype=torch.long), None
