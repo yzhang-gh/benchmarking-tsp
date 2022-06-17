@@ -178,6 +178,7 @@ class NlkhSolver(BaseSovler):
         opts = self.opts
         data_size = len(problems)
         graph_size = problems.shape[1]
+        num_runs = opts.num_runs
         max_trials = opts.max_trials
 
         t1 = time.time()
@@ -236,6 +237,7 @@ class NlkhSolver(BaseSovler):
                                 graph_size,
                                 os.path.join(run_name, f"{i:0{num_digits}d}.tour"),
                                 seed,
+                                num_runs,
                                 max_trials,
                             )
                             for i in range(data_size)

@@ -4,3 +4,4 @@ pretrained/*
 *tmpfiles/
 runs/
 test*
+_test*

@@ -64,11 +64,12 @@ def get_dact_solver_options(graph_size, model_path, num_data_aug=1, T_max=1500, 
     return opts
 
 
-def get_nlkh_solver_options(model_path, max_trials, parallelism=1):
+def get_nlkh_solver_options(model_path, num_runs, max_trials, parallelism=1):
     opts = DotDict(
         {
             "model_path": model_path,
             "device": "cuda",
+            "num_runs": num_runs,
             "max_trials": max_trials,
             "parallelism": parallelism,
             "batch_size": 1,

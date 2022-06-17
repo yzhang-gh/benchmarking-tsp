@@ -69,7 +69,11 @@ if __name__ == "__main__":
         # get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 4, 5000),
     ]
 
-    nlkh_options_list = [get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt", 100)]
+    nlkh_options_list = [
+        # get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
+        # get_nlkh_solver_options("pretrained/nlkh/neurolkh_m.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
+        get_nlkh_solver_options("pretrained/nlkh/clust-epoch-307.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
+    ]
 
     for solver_name, solver_class, opts_list in [
         ("POMO", PomoSolver, pomo_options_list),
@@ -86,7 +90,7 @@ if __name__ == "__main__":
             elif solver_name == "DACT":
                 print(f"data_augmentation={opts.val_m}, max_steps={opts.T_max}, model={opts.load_path}")
             elif solver_name == "NeuroLKH":
-                print(f"max_trials={opts.max_trials}, model={opts.model_path}")
+                print(f"num_runs={opts.num_runs}, max_trials={opts.max_trials}, model={opts.model_path}, parallelism={opts.parallelism}")
 
             solver = solver_class(opts)
 
