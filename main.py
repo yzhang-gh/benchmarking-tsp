@@ -48,7 +48,7 @@ if __name__ == "__main__":
     testfile_name = os.path.join(data_dir, dataset_id)
 
     result_dir = f"test_{datetime_str()}_n{Graph_Size}_{Test_Distribution}"
-    print(f"saved to {result_dir}")
+    print(f"will save to {result_dir}")
 
     # EUC 2D TSP problems
     problems = load_dataset(testfile_name)
