@@ -1,3 +1,7 @@
+# Benchmarking TSP
+
+(Introduction)
+
 ## Install
 
 ```bash
@@ -27,7 +31,7 @@ pip install -e .
 # use `pip install -e . --no-build-isolation --no-binary :all:`
 # if you get the 'ValueError: numpy.ndarray size changed, ...' error
 
-# === Data generation ===
+# === Clustered TSP data generation ===
 conda install r r-essentials
 R
 # in the R session
@@ -37,7 +41,30 @@ R
 > q()  # quit
 ```
 
-## Data Organization and Naming
+## Test
+
+### Pretrained Models
+
+- POMO
+  https://github.com/yd-kwon/POMO/tree/master/NEW_py_ver/TSP/POMO/result
+- DACT
+  https://github.com/yining043/VRP-DACT/tree/main/pretrained
+- NeuroLKH
+  https://github.com/liangxinedu/NeuroLKH/tree/main/pretrained
+
+## Train
+
+## Others
+
+### TSP Data Generation
+
+There are two types of TSP data:
+
+Transformation
+
+coordinate precision 0.000001
+
+### TSP Data Organization
 
 ```
 dataset_id := <distribution><graph_size>_seed<seed>
@@ -55,7 +82,7 @@ data/
     └── ...
 ```
 
-### Default Random Seed
+<!-- #### Default Random Seed
 
 train
 
@@ -71,28 +98,30 @@ test
 
 ```
 <graph_size> * 10 + 8/9 (rue/clustered)
-```
+``` -->
 
-## Pretrained Models
+<details>
+<summary>Abbreviations Used in the Source Code</summary>
 
-- POMO
-  https://github.com/yd-kwon/POMO/tree/master/NEW_py_ver/TSP/POMO/result
-- DACT
-  https://github.com/yining043/VRP-DACT/tree/main/pretrained
-- NeuroLKH
-  https://github.com/liangxinedu/NeuroLKH/tree/main/pretrained
+| Abbr. | Meaning                  |
+| ----- | ------------------------ |
+| rue   | random uniform Euclidean |
+| clust | cluster(ed)              |
+| feat  | feature                  |
 
-## Abbreviation
-
-clust --- cluster
-feat --- feature
+</details>
 
 ## Acknowledgements
 
-https://github.com/wouterkool/attention-learn-to-route
+**Compared neural solvers**
 
-netgen
+- [DACT](https://github.com/yining043/VRP-DACT), Ma et al., *NeurIPS*, 2021
+- [NeuroLKH](https://github.com/liangxinedu/NeuroLKH), Xin et al., *NeurIPS*, 2021
+- [POMO](https://github.com/yd-kwon/POMO), Kwon et al., *NeurIPS*, 2020
 
----
+<!--  -->
 
-bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}'
+**Others**
+
+- [Attention, Learn to Solve Routing Problems!](https://github.com/wouterkool/attention-learn-to-route), Kool et al., *ICLR*, 2019
+- [netgen](https://github.com/jakobbossek/netgen), generating random (clustered) networks in R
