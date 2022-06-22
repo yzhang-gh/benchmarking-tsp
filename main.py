@@ -11,11 +11,6 @@ from solvers.solvers import DactSolver, NlkhSolver, PomoSolver
 from utils.data_utils import load_dataset
 from utils.file_utils import load_tsplib_file
 
-Testset_Size = 10000
-Graph_Size = 100
-Test_Distribution = "rue"
-Num_Runs = 10
-
 
 def get_costs(problems, tours):
     # Check that tours are valid, i.e. contain 0 to n -1
@@ -43,6 +38,11 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+    Testset_Size = 10000
+    Graph_Size = 100
+    Test_Distribution = "rue"
+    Num_Runs = 10  # number of different random seeds
+
     data_dir = "../test_data"
     dataset_id = f"{Test_Distribution}{Graph_Size}"
     testfile_name = os.path.join(data_dir, dataset_id)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     result_dir = f"test_{datetime_str()}_n{Graph_Size}_{Test_Distribution}"
     print(f"will save to {result_dir}")
 
-    # EUC 2D TSP problems
+    # TSP problems
     problems = load_dataset(testfile_name)
     problems = problems[:Testset_Size]
     problems = torch.tensor(problems, dtype=torch.float)  # numpy ndarray's default dtype is double
@@ -90,7 +90,10 @@ if __name__ == "__main__":
             elif solver_name == "DACT":
                 print(f"data_augmentation={opts.val_m}, max_steps={opts.T_max}, model={opts.load_path}")
             elif solver_name == "NeuroLKH":
-                print(f"num_runs={opts.num_runs}, max_trials={opts.max_trials}, model={opts.model_path}, parallelism={opts.parallelism}")
+                print(
+                    f"num_runs={opts.num_runs}, max_trials={opts.max_trials}, model={opts.model_path}, "
+                    + f"batch_size={opts.batch_size}, parallelism={opts.parallelism}"
+                )
 
             solver = solver_class(opts)
 
@@ -123,11 +126,8 @@ if __name__ == "__main__":
                     scores = scores.to("cpu")
                     reported_len = scores.mean().item()
 
-                # print(info(f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, {duration=!s}"))
-                # assert (torch.div((scores - costs), torch.minimum(scores, costs)).abs() < 2e-7).all()
-
                 # integer length
-                num_digits = len(str(len(problems) - 1))
+                num_digits = 4
                 lens = {}
                 for i_tsp, (tour, float_len) in enumerate(zip(tours, costs.tolist())):
                     f = os.path.join(data_dir, dataset_id, f"{i_tsp:0{num_digits}d}.tsp")
@@ -172,14 +172,14 @@ if __name__ == "__main__":
 
                 print(
                     info(
-                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={gaps.mean():.5%}, {duration=!s}"
+                        f"{seed=}, {reported_len=:.6f}, {tour_len=:.6f}, gap={gaps.mean():.6%}, {duration=!s}"
                     )
                 )
 
             gaps_multi_runs = np.stack(gaps_multi_runs)
             print(
                 info(
-                    f"gaps_multi_runs={gaps.mean():.5%}, std={gaps_multi_runs.std(axis=0).mean():.5%}, "
+                    f"gaps_multi_runs={gaps_multi_runs.mean():.6%}, std={gaps_multi_runs.std(axis=0).mean():.6%}, "
                     + f"avg duration={np.mean(duration_multi_runs):.4f}s"
                 )
             )

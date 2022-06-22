@@ -5,7 +5,7 @@ import numpy as np
 from utils.data_utils import downscale_tsp_coords
 
 ## <integer> <real> <real>
-Regex_Node_Coord_Line = re.compile(r"(\d+)[\t ]([\d\.e\-\+]+)[\t ]([\d\.e\-\+]+)")
+Regex_Node_Coord_Line = re.compile(r" *(\d+)(?:\t| +)([\d\.e\-\+]+)(?:\t| +)([\d\.e\-\+]+)")
 
 
 def load_tsplib_file(data_file, normalize=False):
