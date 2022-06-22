@@ -13,7 +13,14 @@ git submodule update --init --recursive
 
 ### Environment
 
-Python 3.8
+The code requires at least Python 3.8. [Conda](https://docs.conda.io/en/latest/index.html) is recommended for managing the packages.
+
+```bash
+conda create -n tsp python=3.8
+conda activate tsp
+```
+
+Install packages
 
 ```bash
 conda install pytorch==1.7.1 torchvision==0.8.2 cudatoolkit=10.1 -c pytorch
@@ -41,6 +48,13 @@ R
 > q()  # quit
 ```
 
+Build NeuroLKH
+
+```bash
+cd solvers/nlkh
+bash setup.sh
+```
+
 ## Test
 
 ### Pretrained Models
@@ -54,11 +68,27 @@ R
 
 ## Train
 
+train_pomo.py
+train_dact.py
+
 ## Others
+
+<details>
+<summary><strong>Abbreviations Used in the Source Code</strong></summary>
+
+| Abbr. | Meaning                  |
+| ----- | ------------------------ |
+| rue   | random uniform Euclidean |
+| clust | cluster(ed)              |
+| feat  | feature                  |
+
+</details>
 
 ### TSP Data Generation
 
-There are two types of TSP data:
+Euclidean TSP
+
+There are two types of TSP data: `rue` and `clustered`. For `rue`, the nodes (cities) are randomly and uniformly distributed within a unit square where the coordinates $x, y \in [0, 1)$. In order to be consistent with the TSPLib 95 format
 
 Transformation
 
@@ -99,17 +129,6 @@ test
 ```
 <graph_size> * 10 + 8/9 (rue/clustered)
 ``` -->
-
-<details>
-<summary>Abbreviations Used in the Source Code</summary>
-
-| Abbr. | Meaning                  |
-| ----- | ------------------------ |
-| rue   | random uniform Euclidean |
-| clust | cluster(ed)              |
-| feat  | feature                  |
-
-</details>
 
 ## Acknowledgements
 
