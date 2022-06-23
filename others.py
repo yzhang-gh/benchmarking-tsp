@@ -20,6 +20,9 @@ class DotDict(dict):
     def __repr__(self):
         return '<DotDict ' + dict.__repr__(self) + '>'
 
+    def todict(self):
+        return {k: v for k, v in self.items()}
+
 
 def info(text):
     return f"\033[94m{text}\033[0m"

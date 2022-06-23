@@ -78,9 +78,8 @@ def generate_tsp_data(
     return dataset
 
 
-def generate_data_jit(
-    tmp_data_dir, dataset_size, graph_size, distribution="rue", seed=None, num_clusts=None
-):
+def generate_data_jit(tmp_data_dir, dataset_size, graph_size, distribution="rue", seed=None):
+    """wrapper function for `generate_tsp_data` with `save=False` and `quiet=True` by default"""
     assert distribution in ["rue", "clust", "mix"]
     t1 = time.time()
 

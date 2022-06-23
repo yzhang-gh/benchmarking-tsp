@@ -142,7 +142,7 @@ if __name__ == "__main__":
                 # save test results
                 with open(os.path.join(save_dir, "solver_opts.json"), "w") as w:
                     if type(opts) == DotDict:
-                        opts = {k: v for k, v in opts.items()}
+                        opts = opts.todict()
                     w.write(json.dumps(opts, indent=4))
                 np.savetxt(os.path.join(save_dir, "tours.txt"), tours.numpy(), fmt="%d")
                 with open(os.path.join(save_dir, "out.json"), "w") as w:
