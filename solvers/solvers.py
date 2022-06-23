@@ -207,9 +207,13 @@ class NlkhSolver(BaseSovler):
 
         t2 = time.time()
 
+        edge_index = torch.tensor(edge_index, requires_grad=False, dtype=torch.float, device=opts.device)
+        edge_feat = torch.tensor(edge_feat, requires_grad=False, dtype=torch.float, device=opts.device)
+        inverse_edge_index = torch.tensor(inverse_edge_index, requires_grad=False, dtype=torch.float, device=opts.device)
+
         with torch.no_grad():
             candidate_Pi = infer_SGN(
-                self.net, problems, edge_index, edge_feat, inverse_edge_index, batch_size=opts.batch_size
+                self.net, problems.to(opts.device), edge_index, edge_feat, inverse_edge_index, batch_size=opts.batch_size
             )
 
         invec = np.concatenate([problems.reshape(data_size, -1) * 1000000, candidate_Pi[:data_size]], 1)
