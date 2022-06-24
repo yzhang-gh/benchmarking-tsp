@@ -55,7 +55,7 @@ if __name__ == "__main__":
     problems = problems[:Testset_Size]
     problems = torch.tensor(problems, dtype=torch.float)  # numpy ndarray's default dtype is double
 
-    print(f"Loaded '{testfile_name}'. {Testset_Size=}")
+    print(f"Loaded '{testfile_name}', {Testset_Size=}, {Num_Runs=} (num of different random seeds)")
 
     pomo_options_list = [
         get_pomo_solver_options(Graph_Size, "/data0/zhangyu/runs/pomo/n50_clust_20220608_231808", 800, 1),
