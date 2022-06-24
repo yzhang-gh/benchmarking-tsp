@@ -27,7 +27,12 @@ assert opts.load_pt
 distribution = "rue"
 tmp_data_dir = "data_nlkh_finetune_tmp"
 
-for n_nodes in [1000, 2000, 5000]:
+if distribution == "clust":
+    num_clusts = 7
+else:
+    num_clusts = None
+
+for n_nodes in [1000]:
     net = SparseGCNModel()
     net.cuda()
     net.train()
@@ -41,7 +46,7 @@ for n_nodes in [1000, 2000, 5000]:
 
         batch_size = max(20 * 200 // n_nodes, 1)
         data_seed = np.random.randint(1000000)
-        tsp_dataset, _duration = generate_data_jit(tmp_data_dir, batch_size, n_nodes, distribution, seed=data_seed)
+        tsp_dataset, _duration = generate_data_jit(tmp_data_dir, batch_size, n_nodes, distribution, seed=data_seed, num_clusts=num_clusts)
         node_feat = tsp_dataset
 
         edge_index = []
@@ -150,4 +155,4 @@ for n_nodes in [1000, 2000, 5000]:
             Norms.append(result1[n_nodes + 1])
 
     print("Nodes {} Norms:".format(n_nodes), str(np.mean(Norms))[:5])
-    torch.save({"model": net.state_dict()}, opts.load_pt.replace(".pt", f".finetuned.{distribution}.pt"))
+    torch.save({"model": net.state_dict()}, opts.load_pt.replace(".pt", f".finetuned.{distribution}{n_nodes}.pt"))
