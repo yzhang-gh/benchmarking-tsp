@@ -1,9 +1,10 @@
-"""Modified from
+"""Largely modified from
 https://github.com/yzhang-gh/NeuroLKH/blob/f09d06634d4ff840ee2650776d3de3f9e0f32200/tsplib_test.py
 """
 import argparse
+import json
 import os
-import pickle
+import re
 import time
 from multiprocessing import Pool
 from subprocess import check_call
@@ -12,96 +13,52 @@ import numpy as np
 import torch
 import tqdm
 from torch.autograd import Variable
+from others import datetime_str, info
 
 from solvers.nlkh.net.sgcn_model import SparseGCNModel
 
 
-def write_para(instance_name, method, para_filename, opt_value):
+def write_para(tsp_filename, model_id, para_filename, optim, seed=1234):
     with open(para_filename, "w") as f:
-        f.write("PROBLEM_FILE = tsplib_data/" + instance_name + ".tsp\n")
-        f.write("MOVE_TYPE = 5\nPATCHING_C = 3\nPATCHING_A = 2\nRUNS = 10\n")
-        f.write("OPTIMUM = " + str(opt_value) + "\n")
-        if method == "NeuroLKH":
-            f.write("SEED = 1234\n")
-            f.write(f"CANDIDATE_FILE = {out_dir}/candidate/{instance_name}.txt\n")
+        f.write(
+            f"PROBLEM_FILE = {data_dir}/{tsp_filename}\n"
+            + "RUNS = 1\n"
+            + f"OPTIMUM = {optim}\n"
+            + f"TIME_LIMIT = {Time_Limit}\n"
+            + f"SEED = {seed}\n"
+        )
+
+        if model_id.startswith("lkh_"):  # lkh tuned
+            with open("pretrained/lkh/" + model_id.replace("lkh_", "") + ".para") as r:
+                f.write(r.read())
         else:
-            assert method == "LKH"
+            f.write("MOVE_TYPE = 5\n" + "PATCHING_C = 3\n" + "PATCHING_A = 2\n")
+
+        if "nlkh" in model_id:
+            f.write(f"CANDIDATE_FILE = {out_dir}/candidate/{model_id}/{tsp_filename}.txt\n")
 
 
-def read_feat(feat_filename):
-    edge_index = []
-    edge_feat = []
-    inverse_edge_index = []
-    with open(feat_filename, "r") as f:
-        lines = f.readlines()
-        for line in lines[:-1]:
-            line = line.strip().split()
-            for i in range(20):
-                edge_index.append(int(line[i * 3]))
-                edge_feat.append(int(line[i * 3 + 1]) / 1000000)
-                inverse_edge_index.append(int(line[i * 3 + 2]))
-    edge_index = np.array(edge_index).reshape(1, -1, 20)
-    edge_feat = np.array(edge_feat).reshape(1, -1, 20)
-    inverse_edge_index = np.array(inverse_edge_index).reshape(1, -1, 20)
-    runtime = float(lines[-1].strip())
-    return edge_index, edge_feat, inverse_edge_index, runtime
+def infer_SGN_write_candidate(net, tsp_problem_files, model_id):
+    sgn_runtimes = {}
+    for tsp_problem_file in tsp_problem_files:
+        t1 = time.time()
 
-
-def write_candidate_pi(dataset_name, instance_name, candidate, pi):
-    n_node = candidate.shape[0]
-    with open("result/" + dataset_name + "/candidate/" + instance_name + ".txt", "w") as f:
-        f.write(str(n_node) + "\n")
-        for j in range(n_node):
-            line = str(j + 1) + " 0 5"
-            for _ in range(5):
-                line += " " + str(int(candidate[j, _]) + 1) + " " + str(_ * 100)
-            f.write(line + "\n")
-        f.write("-1\nEOF\n")
-    with open("result/" + dataset_name + "/pi/" + instance_name + ".txt", "w") as f:
-        f.write(str(n_node) + "\n")
-        for j in range(n_node):
-            line = str(j + 1) + " " + str(int(pi[j]))
-            f.write(line + "\n")
-        f.write("-1\nEOF\n")
-
-
-def method_wrapper(args):
-    if args[0] == "LKH":
-        return solve_LKH(*args[1:])
-    elif args[0] == "NeuroLKH":
-        return solve_NeuroLKH(*args[1:])
-    else:
-        raise NotImplementedError
-
-
-def solve_LKH(instance_name, opt_value):
-    para_filename = os.path.join(out_dir, f"LKH_para/{instance_name}.para")
-    log_filename = os.path.join(out_dir, f"LKH_log/{instance_name}.log")
-    write_para(instance_name, "LKH", para_filename, opt_value)
-    with open(log_filename, "w") as f:
-        check_call([LKH_Execuatable, para_filename], stdout=f)
-    return read_results(log_filename)
-
-
-def solve_NeuroLKH(instance_name, opt_value):
-    para_filename = os.path.join(out_dir, f"NeuroLKH_para/{instance_name}.para")
-    log_filename = os.path.join(out_dir, f"NeuroLKH_log/{instance_name}.log")
-    write_para(instance_name, "NeuroLKH", para_filename, opt_value)
-    with open(log_filename, "w") as f:
-        check_call([LKH_Execuatable, para_filename], stdout=f)
-    return read_results(log_filename)
-
-
-def infer_SGN_write_candidate(net, instance_names):
-    for instance_name in instance_names:
-        with open(f"tsplib_data/{instance_name}.tsp", "r") as f:
+        with open(f"{data_dir}/{tsp_problem_file}", "r") as f:
             lines = f.readlines()
-            assert lines[4] == "EDGE_WEIGHT_TYPE : EUC_2D\n"
-            assert lines[5] == "NODE_COORD_SECTION\n"
-            n_nodes = int(lines[3].split(" ")[-1])
+            # if not ("EDGE_WEIGHT_TYPE : EUC_2D\n" in lines or "EDGE_WEIGHT_TYPE: EUC_2D\n" in lines):
+            #     print(info(tsp_problem_file), "not EUC_2D")
+
+            n_nodes = None
+            coord_line_start_index = None
+            for i_l, l in enumerate(lines):
+                if l.startswith("DIMENSION"):
+                    n_nodes = int(l.split(" ")[-1].strip())
+                if l.startswith("NODE_COORD_SECTION"):
+                    coord_line_start_index = i_l + 1
+
             x = []
             for i in range(n_nodes):
-                line = [float(_) for _ in lines[6 + i].strip().split()]
+                line = [float(_) for _ in lines[coord_line_start_index + i].strip().split()]
                 assert len(line) == 3
                 assert line[0] == i + 1
                 x.append([line[1], line[2]])
@@ -159,7 +116,10 @@ def infer_SGN_write_candidate(net, instance_names):
         ]
         candidate_test.append(candidate_index[:, :, :5])
         candidate_test = np.concatenate(candidate_test, 0)
-        with open(os.path.join(out_dir, f"candidate/{instance_name}.txt"), "w") as f:
+
+        candidate_file = os.path.join(out_dir, f"candidate/{model_id}/{tsp_problem_file}.txt")
+        os.makedirs(os.path.dirname(candidate_file), exist_ok=True)
+        with open(candidate_file, "w") as f:
             f.write(str(n_nodes) + "\n")
             for j in range(n_nodes):
                 line = str(j + 1) + " 0 5"
@@ -168,9 +128,17 @@ def infer_SGN_write_candidate(net, instance_names):
                 f.write(line + "\n")
             f.write("-1\nEOF\n")
 
+        t2 = time.time()
+        sgn_runtimes[tsp_problem_file] = t2 - t1
+
+    return sgn_runtimes
+
+
+Run_Result_Regex = re.compile(r"Run \d+: Cost = (\d+),.*")
+
 
 def read_results(log_filename):
-    results = []
+    """num of successes, avg_gap, min_tour_len, avg_tour_len, min_trials, avg_trials, lkh_time"""
     with open(log_filename, "r") as f:
         lines = f.readlines()
         successes = int(lines[-7].split(" ")[-2].split("/")[0])
@@ -179,106 +147,153 @@ def read_results(log_filename):
         trials_min = float(lines[-4].split(",")[0].split(" ")[-1])
         trials_avg = float(lines[-4].split(",")[1].split(" ")[-1])
         time = float(lines[-3].split(",")[1].split(" ")[-2])
-        return successes, cost_min, cost_avg, trials_min, trials_avg, time
+
+        optim = 0
+        gaps = []
+        for l in lines:
+            if l.startswith("OPTIMUM = "):
+                optim = int(l.split("=")[-1].strip())
+            ## it is okay as the `OPTIMUM` line is always before the `Run` line
+            if matches := Run_Result_Regex.match(l):
+                tour_len = int(matches.group(1))
+                gaps.append((tour_len - optim) / optim)
+
+        if len(gaps) == 0:
+            print(info(log_filename), "0 run")
+            avg_gap = -0.01
+        else:
+            avg_gap = sum(gaps) / len(gaps)
+
+        return successes, avg_gap, cost_min, cost_avg, trials_min, trials_avg, time
 
 
-def eval_dataset(instance_names, method, opts, opt_values):
-    os.makedirs(os.path.join(out_dir, method + "_para"), exist_ok=True)
-    os.makedirs(os.path.join(out_dir, method + "_log"), exist_ok=True)
+def evaluate(args):
+    return _evaluate(*args)
 
-    if method == "NeuroLKH":
-        os.makedirs(os.path.join(out_dir, "candidate"), exist_ok=True)
 
-        net = SparseGCNModel()
-        net.cuda()
-        saved = torch.load(opts.model_path)
-        net.load_state_dict(saved["model"])
-        sgn_start_time = time.time()
-        with torch.no_grad():
-            infer_SGN_write_candidate(net, instance_names)
-        sgn_runtime = time.time() - sgn_start_time
-        with Pool(os.cpu_count()) as pool:
-            results = list(
-                tqdm.tqdm(
-                    pool.imap(
-                        method_wrapper,
-                        [
-                            ("NeuroLKH", instance_names[i], opt_values[instance_names[i]])
-                            for i in range(len(instance_names))
-                        ],
-                    ),
-                    total=len(instance_names),
-                    desc="NeuroLKH",
-                    bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
-                )
-            )
-    else:
-        assert method == "LKH"
-        feat_runtime = 0
-        sgn_runtime = 0
-        with Pool(opts.parallelism) as pool:
-            results = list(
-                tqdm.tqdm(
-                    pool.imap(
-                        method_wrapper,
-                        [("LKH", instance_names[i], opt_values[instance_names[i]]) for i in range(len(instance_names))],
-                    ),
-                    total=len(instance_names),
-                    desc="LKH",
-                    bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
-                )
-            )
-    return results
+def _evaluate(model_id, tsp_problem_file, optim, seed):
+    para_filename = os.path.join(out_dir, f"{model_id}/para/{tsp_problem_file}.{seed}.para")
+    log_filename = os.path.join(out_dir, f"{model_id}/log/{tsp_problem_file}.{seed}.log")
+    os.makedirs(os.path.dirname(para_filename), exist_ok=True)
+    os.makedirs(os.path.dirname(log_filename), exist_ok=True)
+
+    write_para(tsp_problem_file, model_id, para_filename, optim, seed)
+
+    # t1 = time.time()
+    with open(log_filename, "w") as f:
+        check_call([LKH_Execuatable, para_filename], stdout=f)
+    # t2 = time.time()
+
+    print(f"{model_id:10}, {tsp_problem_file:20}, {seed=}")
+
+    return model_id, tsp_problem_file, *read_results(log_filename)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, default="pretrained/nlkh/neurolkh.pt")
-    parser.add_argument("--n_samples", type=int, default=5)
+    parser.add_argument("--n_samples", type=int, default=30)
     opts = parser.parse_args()
 
-    opts.parallelism = 32
-    out_dir = "test_results_tsplib"
+    Time_Limit = 3600
+
+    data_dir = "data_large"
+    out_dir = f"test_{datetime_str()}_large"
 
     LKH_Execuatable = "solvers/nlkh/LKH"
 
-    instance_names = [
-        "kroB150",
-        "rat195",
-        "pr299",
-        "d493",
-        "rat575",
-        "pr1002",
-        "u1060",
-        "vm1084",
-        "pcb1173",
-        "rl1304",
-        "rl1323",
-        "nrw1379",
-        "fl1400",
-        "fl1577",
-        "vm1748",
-        "u1817",
-        "rl1889",
-        "d2103",
-        "u2152",
-        "pcb3038",
-        "fl3795",
-        "fnl4461",
-        "rl5915",
-        "rl5934",
-    ]
-    instance_names = instance_names[: opts.n_samples]
-    with open("tsplib_data/opt.pkl", "rb") as f:
-        opt_values = pickle.load(f)
-    lkh_results = eval_dataset(instance_names, "LKH", opts, opt_values)
-    neurolkh_r_results = eval_dataset(instance_names, "NeuroLKH", opts, opt_values)
+    with open(os.path.join(data_dir, "testset_indices.txt")) as r:
+        tsp_problem_files = r.read().strip().split("\n")
+    tsp_problem_files = tsp_problem_files[: opts.n_samples]
 
-    opts.model_path = "pretrained/nlkh/neurolkh_m.pt"
-    neurolkh_m_results = eval_dataset(instance_names, "NeuroLKH", opts, opt_values)
-    print("Successes    Best Average Trials_Min Trials_Avg Time")
-    for i in range(len(lkh_results)):
-        print(f"----- {instance_names[i]} -----")
-        print("{:>9d} {:7.1f} {:7.1f} {:10.1f} {:10.1f} {:4.1f}".format(*tuple(lkh_results[i])))
-        print("{:>9d} {:7.1f} {:7.1f} {:10.1f} {:10.1f} {:4.1f}".format(*tuple(neurolkh_r_results[i])))
-        print("{:>9d} {:7.1f} {:7.1f} {:10.1f} {:10.1f} {:4.1f}".format(*tuple(neurolkh_m_results[i])))
+    with open(os.path.join(data_dir, "testset_optims.json")) as r:
+        optims = json.loads(r.read())
+
+    nlkh_models = {
+        "nlkh_rue": "pretrained/nlkh/neurolkh.pt",
+        "nlkh_mix": "pretrained/nlkh/neurolkh_m.pt",
+        "nlkh_clust": "pretrained/nlkh/clust-epoch-307.pt",
+    }
+
+    model_ids = [*nlkh_models.keys(), "lkh", "lkh_rue", "lkh_mix", "lkh_clust"]
+    print(f"{model_ids=}")
+
+    ## write nlkh candidates
+    nlkh_sgn_runtimes = {}
+    first_time = True
+    for model_id, model_path in nlkh_models.items():
+        print(f"writing {model_id} generated candidates")
+
+        net = SparseGCNModel()
+        net.load_state_dict(torch.load(model_path)["model"])
+        net.cuda()
+
+        with torch.no_grad():
+            # the time may be inaccurate for the very first inference because the GPU is idle
+            # shouldn't be a problem as the difference is slight
+            if first_time:
+                infer_SGN_write_candidate(net, tsp_problem_files, model_id)
+                first_time = False
+            sgn_runtimes = infer_SGN_write_candidate(net, tsp_problem_files, model_id)
+        nlkh_sgn_runtimes[model_id] = sgn_runtimes
+
+    args_list = [
+        [model_id, tsp_problem_file, optims[tsp_problem_file]]
+        for model_id in model_ids
+        for tsp_problem_file in tsp_problem_files
+    ]
+
+    num_seeds = 10
+    seeds = np.random.randint(1000000, size=num_seeds)
+    seeds = sorted(seeds)  ## in order to see the progress
+    print("seeds", seeds)
+    args_list = [args + [seed] for seed in seeds for args in args_list]
+
+    with Pool(66) as pool:
+        results = list(
+            tqdm.tqdm(
+                pool.imap(evaluate, args_list),
+                total=len(args_list),
+                bar_format="{l_bar}{bar:20}{r_bar}{bar:-20b}",
+            )
+        )
+
+    with open(os.path.join(out_dir, "nlkh_sng_runtimes.json"), "w") as w:
+        w.write(json.dumps(nlkh_sgn_runtimes))
+
+    results = sorted(results, key=lambda x: tsp_problem_files.index(x[1]) * 10 + model_ids.index(x[0]))
+    with open(os.path.join(out_dir, "results.csv"), "w") as w:
+        w.write("\n".join([", ".join(map(str, res)) for res in results]))
+
+    print(
+        "{:10} {:9} {:10} {:10} {:10} {:10} {:10} {:8}".format(
+            "Model", "Successes", "Gap", "Best", "Average", "Trials_Min", "Trials_Avg", "LKH_Time"
+        )
+    )
+    current_problem = ""
+    for results_grouped_by_seed in [results[n : n + num_seeds] for n in range(0, len(results), num_seeds)]:
+        first_res = results_grouped_by_seed[0]
+        assert all(e[0] == first_res[0] for e in results_grouped_by_seed)
+        assert all(e[1] == first_res[1] for e in results_grouped_by_seed)
+        res = zip(*results_grouped_by_seed)
+        res = [
+            func(e)
+            for e, func in zip(
+                res,
+                [
+                    lambda x: x[0],             ## model_id
+                    lambda x: x[0],             ## tsp_problem_file
+                    lambda x: sum(x),           ## num_successes
+                    lambda x: sum(x) / len(x),  ## optim_gap
+                    lambda x: min(x),           ## best_solution (min_tour_len)
+                    lambda x: sum(x) / len(x),  ## avg_tour_len
+                    lambda x: min(x),           ## min_trials
+                    lambda x: sum(x) / len(x),  ## avg_trials
+                    lambda x: sum(x) / len(x),  ## avg_lkh_time
+                ],
+            )
+        ]
+
+        if res[1] != current_problem:
+            current_problem = res[1]
+            print(f"== {current_problem} ==")
+        print("{:10} {:>9d} {:10.6%} {:10.1f} {:10.1f} {:10.1f} {:10.1f} {:8.2f}".format(res[0], *res[2:]))
