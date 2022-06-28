@@ -138,7 +138,7 @@ Run_Result_Regex = re.compile(r"Run \d+: Cost = (\d+),.*")
 
 
 def read_results(log_filename):
-    """num of successes, avg_gap, min_tour_len, avg_tour_len, min_trials, avg_trials, lkh_time"""
+    """returns (num_of_successes, avg_gap, min_tour_len, avg_tour_len, min_trials, avg_trials, lkh_time)"""
     with open(log_filename, "r") as f:
         lines = f.readlines()
         successes = int(lines[-7].split(" ")[-2].split("/")[0])
@@ -168,10 +168,12 @@ def read_results(log_filename):
 
 
 def evaluate(args):
+    """returns (model_id, tsp_problem_file, num_of_successes, avg_gap, min_tour_len, avg_tour_len, min_trials, avg_trials, lkh_time)"""
     return _evaluate(*args)
 
 
 def _evaluate(model_id, tsp_problem_file, optim, seed):
+    """returns (model_id, tsp_problem_file, num_of_successes, avg_gap, min_tour_len, avg_tour_len, min_trials, avg_trials, lkh_time)"""
     para_filename = os.path.join(out_dir, f"{model_id}/para/{tsp_problem_file}.{seed}.para")
     log_filename = os.path.join(out_dir, f"{model_id}/log/{tsp_problem_file}.{seed}.log")
     os.makedirs(os.path.dirname(para_filename), exist_ok=True)
