@@ -57,6 +57,10 @@ bash setup.sh
 
 ## Test
 
+test rue/clustered
+
+`test_tsplib_nlkh.py` (make LKH)
+
 ### Pretrained Models
 
 - POMO
@@ -76,11 +80,14 @@ train_dact.py
 <details>
 <summary><strong>Abbreviations Used in the Source Code</strong></summary>
 
-| Abbr. | Meaning                  |
-| ----- | ------------------------ |
-| rue   | random uniform Euclidean |
-| clust | cluster(ed)              |
-| feat  | feature                  |
+| Abbr.  | Meaning                  |
+| ------ | ------------------------ |
+| rue    | random uniform Euclidean |
+| clust  | cluster(ed)              |
+| feat   | feature                  |
+| opt(s) | option(s)                |
+| optim  | optimum                  |
+| sol    | solution                 |
 
 </details>
 
