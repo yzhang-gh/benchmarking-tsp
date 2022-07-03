@@ -58,21 +58,46 @@ if __name__ == "__main__":
     print(f"Loaded '{testfile_name}', {Testset_Size=}, {Num_Runs=} (num of different random seeds)")
 
     pomo_options_list = [
-        get_pomo_solver_options(Graph_Size, "/data0/zhangyu/runs/pomo/n50_clust_20220608_231808", 800, 1),
-        get_pomo_solver_options(Graph_Size, "/data0/zhangyu/runs/pomo/n50_clust_20220608_231808", 800, 8),
+        # # rue 50
+        get_pomo_solver_options(Graph_Size, "pretrained/pomo/n50_rue_downloaded", 1000, 1),
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n50_rue_downloaded", 1000, 8),
+        # # rue 100
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n100_rue_longtrain_downloaded", 3100, 1),
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n100_rue_longtrain_downloaded", 3100, 8),
+        # # clust 50
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n50_clust_20220613_213856", 1000, 1),
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n50_clust_20220613_213856", 1000, 8),
+        # # clust 100
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n100_clust_20220613_214521", 900, 1),
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n100_clust_20220613_214521", 900, 8),
+        # mix 100
+        # get_pomo_solver_options(Graph_Size, "pretrained/pomo/n100_mix_20220619_215128", 1766, 8),
     ]
 
     dact_options_list = [
-        get_dact_solver_options(Graph_Size, "/data0/zhangyu/runs/dact/n50_clust_20220608_232711/epoch-40.pt", 1, 1500),
-        # get_dact_solver_options(Graph_Size, "/data0/zhangyu/runs/dact/n50_clust_20220608_232711/epoch-50.pt", 1, 1500),
-        # get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 1, 5000),
-        # get_dact_solver_options(Graph_Size, "pretrained/dact/tsp100-epoch-195.pt", 4, 5000),
+        # # rue 50
+        get_dact_solver_options(Graph_Size, "pretrained/dact/n50_rue_downloaded/epoch-198.pt", 1, T_max=5000, test_batch_size=10000),
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n50_rue_downloaded/epoch-198.pt", 1, T_max=5000, test_batch_size=4096),
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n50_rue_downloaded/epoch-198.pt", 4, T_max=5000, test_batch_size=4096),
+        # # rue 100
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n100_rue_downloaded/epoch-195.pt", 1, T_max=5000, test_batch_size=4096),
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n100_rue_downloaded/epoch-195.pt", 4, T_max=5000, test_batch_size=1024),
+        # # clust 50
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n50_clust_20220608_232711/epoch-199.pt", 1, T_max=5000, test_batch_size=10000),
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n50_clust_20220608_232711/epoch-199.pt", 1, T_max=5000, test_batch_size=4096),
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n50_clust_20220608_232711/epoch-199.pt", 4, T_max=5000, test_batch_size=4096),
+        # # clust 100
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n100_clust_20220607_221925/epoch-110.pt", 1, T_max=5000, test_batch_size=4096),
+        # mix 100
+        # get_dact_solver_options(Graph_Size, "pretrained/dact/n100_mix_20220608_232923/epoch-110.pt", 1, T_max=5000, test_batch_size=4096),
     ]
 
     nlkh_options_list = [
-        # get_nlkh_solver_options("pretrained/nlkh/neurolkh.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
-        # get_nlkh_solver_options("pretrained/nlkh/neurolkh_m.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
-        get_nlkh_solver_options("pretrained/nlkh/clust-epoch-307.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
+        get_nlkh_solver_options("pretrained/nlkh/rue/neurolkh.finetuned.rue1000.pt", num_runs=1, max_trials=Graph_Size, batch_size=256, parallelism=32),
+        # get_nlkh_solver_options("pretrained/nlkh/rue/neurolkh.pt", num_runs=1, max_trials=Graph_Size, batch_size=2500, parallelism=32),
+        # get_nlkh_solver_options("pretrained/nlkh/mix/neurolkh_m.pt", num_runs=1, max_trials=Graph_Size, parallelism=32),
+        # get_nlkh_solver_options("pretrained/nlkh/clust/clust-epoch-307.finetuned.clust1000.pt", num_runs=1, max_trials=Graph_Size, batch_size=256, parallelism=32),
+        # get_nlkh_solver_options("pretrained/nlkh/clust/clust-epoch-307.pt", num_runs=1, max_trials=Graph_Size, batch_size=2500, parallelism=32),
     ]
 
     for solver_name, solver_class, opts_list in [
@@ -86,14 +111,19 @@ if __name__ == "__main__":
         for i_opts, opts in enumerate(opts_list):
 
             if solver_name == "POMO":
-                print(f"data_augmentation={opts[2]['aug_factor']}, model={opts[2]['model_load']['path']}")
+                opts_model = opts[2]['model_load']
+                model_path = f"{opts_model['path']}/epoch-{opts_model['epoch']}.pt"
+                print(f"data_augmentation={opts[2]['aug_factor']}, {model_path=}")
             elif solver_name == "DACT":
-                print(f"data_augmentation={opts.val_m}, max_steps={opts.T_max}, model={opts.load_path}")
+                model_path = opts.load_path
+                print(f"data_augmentation={opts.val_m}, max_steps={opts.T_max}, {model_path=}")
             elif solver_name == "NeuroLKH":
+                model_path = opts.model_path
                 print(
-                    f"num_runs={opts.num_runs}, max_trials={opts.max_trials}, model={opts.model_path}, "
+                    f"num_runs={opts.num_runs}, max_trials={opts.max_trials}, {model_path=}, "
                     + f"batch_size={opts.batch_size}, parallelism={opts.parallelism}"
                 )
+            model_id = f"opts_{i_opts}_model_" + model_path.split("/")[-2]
 
             solver = solver_class(opts)
 
@@ -135,7 +165,7 @@ if __name__ == "__main__":
                     int_len = calc_tsp_int_length(coords, tour)
                     lens[f] = [float_len, int_len]
 
-                run_name = f"{solver_name}/{dataset_id}_opts_{i_opts}/seed{seed}"
+                run_name = f"{solver_name}/{model_id}/seed{seed}"
                 save_dir = os.path.join(result_dir, run_name)
                 os.makedirs(save_dir, exist_ok=True)
 
@@ -185,6 +215,6 @@ if __name__ == "__main__":
             )
 
             np.savetxt(
-                os.path.join(result_dir, f"{solver_name}/{dataset_id}_opts_{i_opts}_multi_run_gaps.txt"),
+                os.path.join(result_dir, f"{solver_name}/{model_id}_multi_run_gaps.txt"),
                 gaps_multi_runs,
             )
