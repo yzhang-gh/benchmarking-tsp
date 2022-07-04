@@ -38,12 +38,12 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    Testset_Size = 10000
-    Graph_Size = 100
     Test_Distribution = "rue"
+    Graph_Size = 100
+    Testset_Size = 10000
     Num_Runs = 10  # number of different random seeds
 
-    data_dir = "../test_data"
+    data_dir = "data_test"
     dataset_id = f"{Test_Distribution}{Graph_Size}"
     testfile_name = os.path.join(data_dir, dataset_id)
 

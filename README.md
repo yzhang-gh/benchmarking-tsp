@@ -57,9 +57,27 @@ bash setup.sh
 
 ## Test
 
-test rue/clustered
+### Test on synthetic TSP problems
 
-`test_tsplib_nlkh.py` (make LKH)
+```bash
+python test.py
+```
+
+The test settings can be changed with variables `Test_Distribution`, `Graph_Size`, `Testset_Size`, and `Num_Runs`.
+
+### Test on TSPLIB/National/VLSI datasets
+
+Make LKH first
+
+```bash
+cd solvers/nlkh
+make
+```
+
+```bash
+# cd ../..
+python test_tsplib_nlkh.py
+```
 
 ### Pretrained Models
 
