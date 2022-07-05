@@ -81,6 +81,8 @@ python test_tsplib_nlkh.py
 
 ### Pretrained Models
 
+links
+
 - POMO
   https://github.com/yd-kwon/POMO/tree/master/NEW_py_ver/TSP/POMO/result
 - DACT
@@ -90,8 +92,7 @@ python test_tsplib_nlkh.py
 
 ## Train
 
-train_pomo.py
-train_dact.py
+Please check `train_pomo.py`, `train_dact.py`, and `solvers/nlkh/train.py` (need to generate training data with `generate_data_nlkh.py` first).
 
 ## Others
 
@@ -111,15 +112,15 @@ train_dact.py
 
 ### TSP Data Generation
 
-Euclidean TSP
+There are two types of TSP data: `rue` and `clustered`. For `rue`, the nodes (cities) are randomly and uniformly distributed within a unit square where the coordinates $x, y \in [0, 1)$.
 
-There are two types of TSP data: `rue` and `clustered`. For `rue`, the nodes (cities) are randomly and uniformly distributed within a unit square where the coordinates $x, y \in [0, 1)$. In order to be consistent with the TSPLib 95 format
+<!-- In order to be consistent with the TSPLIB 95 format
 
 Transformation
 
-coordinate precision 0.000001
+coordinate precision 0.000001 -->
 
-### TSP Data Organization
+<!-- ### TSP Data Organization
 
 ```
 dataset_id := <distribution><graph_size>_seed<seed>
@@ -135,7 +136,7 @@ data/
     ├── xxxx.sol
     ├── xxxx.log
     └── ...
-```
+``` -->
 
 <!-- #### Default Random Seed
 
