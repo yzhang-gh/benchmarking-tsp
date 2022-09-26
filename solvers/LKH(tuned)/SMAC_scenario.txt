@@ -1,0 +1,8 @@
+algo = python parallel_solver_wrapper.py  --opt-fn /home/liusc/ACPP/instance_set/indices/training_set_optimum_mix_1000.json --quality --training
+execdir = .
+deterministic = 0
+run_obj = QUALITY
+overall_obj = MEAN
+target_run_cputime_limit = 15
+paramfile = solvers/paramfile/LKH_pcs.txt
+instance_file = training_index_mix_1000.txt
