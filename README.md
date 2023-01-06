@@ -15,7 +15,7 @@ This repository contains the source code for paper: How Good is Neural Combinato
 ## Directory Structure
 
 ```
-nco-benchmarking/
+benchmarking-tsp/
 ├── problems/
 ├── solvers/              # NCO solvers, LKH, EAX and LKH(tuned)
 ├── utils/

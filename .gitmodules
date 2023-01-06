@@ -7,3 +7,6 @@
 [submodule "solvers/nlkh"]
 	path = solvers/nlkh
 	url = https://github.com/yzhang-gh/NeuroLKH.git
+[submodule "solvers/EAXrestart"]
+	path = solvers/EAXrestart
+	url = https://github.com/senshineL/GA-EAX-restart.git
